@@ -1,16 +1,18 @@
 
 from structured_config.spec.config import Config, MakeScalarEntry, MakeListEntry, MakeCompositeEntry, MakeRequirements
 
+import json
+
 def run():
     spec = Config.composite(
         entries=[
-            MakeCompositeEntry.basic(
+            MakeCompositeEntry.typed(
                 name="person",
                 entries=[
-                    MakeScalarEntry.basic(name="first_name", type=str),
-                    MakeScalarEntry.basic(name="last_name", type=str),
-                    MakeScalarEntry.basic(name="age", type=int),
-                    MakeScalarEntry.basic(name="gender", type=str),
+                    MakeScalarEntry.typed(name="first_name", type=str),
+                    MakeScalarEntry.typed(name="last_name", type=str),
+                    MakeScalarEntry.typed(name="age", type=int),
+                    MakeScalarEntry.typed(name="gender", type=str),
                 ],
                 requirements=MakeRequirements.required([
                     "first_name", 
@@ -19,15 +21,15 @@ def run():
                     "gender"
                 ]),
             ),
-            MakeListEntry.basic(
+            MakeListEntry.typed(
                 name="addresses",
                 elements=Config.composite(
                     entries=[
-                        MakeScalarEntry.basic(name="street", type=str),
-                        MakeScalarEntry.basic(name="number", type=str),
-                        MakeScalarEntry.basic(name="secondary", type=str),
-                        MakeScalarEntry.basic(name="zip", type=str),
-                        MakeScalarEntry.basic(name="city", type=str),
+                        MakeScalarEntry.typed(name="street", type=str),
+                        MakeScalarEntry.typed(name="number", type=str),
+                        MakeScalarEntry.typed(name="secondary", type=str),
+                        MakeScalarEntry.typed(name="zip", type=str),
+                        MakeScalarEntry.typed(name="city", type=str),
                     ],
                     requirements=MakeRequirements.mixed(required=[
                         "street", 
@@ -42,7 +44,30 @@ def run():
         ]
     )
 
-    print(spec.specify())
+    data = {
+        "person": {
+            "first_name": "Max",
+            "last_name": "Mustermann",
+            "age": 39,
+            "gender": "male",
+        },
+        "addresses": [
+            {
+                "street": "Musterstr.",
+                "number": "111c",
+                "zip": 12345,
+                "city": "Berlin",
+            }
+        ]
+    }
+
+    print(json.dumps(
+        spec.convert(data),
+        indent=True,
+        ensure_ascii=True,
+    ))
+
+    # print(spec.specify())
 
 if __name__ == "__main__":
     run()

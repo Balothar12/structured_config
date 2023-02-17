@@ -38,7 +38,7 @@ class ListConfigValue(ConfigValueBase):
         # finish list specification
         return f"{specification}{indent}]\n"
 
-    def convert(self, input: ConfigObjectType or None, key: str, parent_key: str) -> ConversionTargetType:
+    def convert(self, input: ConfigObjectType or None, key: str = "", parent_key: str = "") -> ConversionTargetType:
 
         this_key: str = self.extend_key(aggregate=parent_key, key=key)
         values: List[ConversionTargetType] = {}
@@ -59,22 +59,20 @@ class ListConfigValue(ConfigValueBase):
         
         # config input is a non-null list, so we can try and convert it
         else:
-            values = dict(
-                [
-                    self._convert_one(
-                        value=self._child_definition, 
-                        input=data, 
-                        key=f"[{i}]", 
-                        parent_key=this_key
-                    ) for i, data in enumerate(input)
-                ]
-            )
+            values = [
+                self._convert_one(
+                    value=self._child_definition, 
+                    input=data, 
+                    key=f"[{i}]", 
+                    parent_key=this_key
+                ) for i, data in enumerate(input)
+            ]
 
         # validate the list
         values = self._requirements(values=values)
 
         # convert the list
-        return self._list_converter(other=values)
+        return self._list_converter(other=values, parent=parent_key, current=key)
 
     def _convert_one(self, 
                      value: ConfigValueBase, 

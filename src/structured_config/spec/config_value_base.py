@@ -10,7 +10,7 @@ class ConfigValueBase:
     def __call__(self, input: ConfigObjectType) -> ConversionTargetType:
         return self.convert(input)
 
-    def convert(self, input: ConfigObjectType or None, key: str, parent_key: str) -> ConversionTargetType:
+    def convert(self, input: ConfigObjectType or None, key: str = "", parent_key: str = "") -> ConversionTargetType:
         """Convert a config object to a converted application object"""
         raise NotImplementedError()
     

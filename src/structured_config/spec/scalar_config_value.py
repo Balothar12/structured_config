@@ -59,7 +59,7 @@ class ScalarConfigValue(ConfigValueBase):
         # construct specification
         return f"'{self._converter.typename()}' value, {requirement}\n"
 
-    def convert(self, input: ConfigObjectType or None, key: str, parent_key: str) -> ConversionTargetType:
+    def convert(self, input: ConfigObjectType or None, key: str = "", parent_key: str = "") -> ConversionTargetType:
 
         # check if the value exists
         if input == None:
@@ -72,8 +72,8 @@ class ScalarConfigValue(ConfigValueBase):
         if self._validator_phase == ValidatorPhase.BeforeConversion:
             input = self._validator(data=input)
 
-        # perform data conversion        
-        output: ConversionTargetType = self._converter(input)
+        # perform data conversion
+        output: ConversionTargetType = self._converter(input, parent=parent_key, current=key)
 
         # do we need to validate after we convert?
         if (self._validator_phase == ValidatorPhase.AfterConversion):

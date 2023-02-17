@@ -49,7 +49,7 @@ class CompositeConfigValue(ConfigValueBase):
         # close the composite specification
         return f"{specification}{indent}}}\n"
 
-    def convert(self, input: ConfigObjectType or None, key: str, parent_key: str) -> ConversionTargetType:
+    def convert(self, input: ConfigObjectType or None, key: str = "", parent_key: str = "") -> ConversionTargetType:
 
         this_key: str = self.extend_key(aggregate=parent_key, key=key)
         values: Dict[str, ConversionTargetType] = {}
@@ -58,14 +58,13 @@ class CompositeConfigValue(ConfigValueBase):
         # the children entries are optional
         if input == None:
             values = dict(
-                [(
-                    child_key,
+                [
                     self._convert_one(
                         value=child, 
                         input=None, 
                         key=child_key, 
                         parent_key=this_key
-                    )) for child_key, child in self._children.items()
+                    ) for child_key, child in self._children.items()
                 ]
             )
 
@@ -81,8 +80,7 @@ class CompositeConfigValue(ConfigValueBase):
         # config input is a non-null dictionary, so we can try and convert it
         else:
             values = dict(
-                [(
-                    child_key,
+                [
                     self._convert_one(
                         value=child, 
                         # instead of passing "None" like we did above, we 
@@ -92,12 +90,12 @@ class CompositeConfigValue(ConfigValueBase):
                         input=input.get(child_key, None), 
                         key=child_key, 
                         parent_key=this_key
-                    )) for child_key, child in self._children.items()
+                    ) for child_key, child in self._children.items()
                 ]
             )
 
         # finally, we apply the conversion to the value dictionary
-        return self._converter(other=values)
+        return self._converter(other=values, parent=parent_key, current=key)
 
     def _convert_one(self, 
                      value: ConfigValueBase, 

@@ -198,7 +198,7 @@ class MakeListEntry(CompositeEntry):
     def basic(name: str,
               elements: ConfigValueBase,
               requirements: ListValidator = ListValidator(),
-              converter: ConverterBase = ConverterBase()) -> 'MakeListEntry':
+              converter: ConverterBase = NoOpConverter()) -> 'MakeListEntry':
         """Create a list entry for a composite value
 
         See the documentation of "Config.list()" for details on list config entries.
