@@ -19,7 +19,7 @@ class JsonLikeWriter(IndentedSchemaWriter):
         specification: str = f"[{list.limits_summary}\n{self.indent(offset=1)}"
         
         # add child specification
-        specification = (f"{specification}{list.children.define(self.next(next_indentation=self.indentation.next()))}")
+        specification = (f"{specification}{list.children.define(self.next())}")
 
         # finish list specification
         return f"{specification}\n{self.indent()}]"
@@ -30,7 +30,7 @@ class JsonLikeWriter(IndentedSchemaWriter):
 
         # get the specification from each child
         speclist: List[str] = [
-            f"{self.indent(offset=1)}\"{key}\": {child.define(self.next(next_indentation=self.indentation.next()))}"
+            f"{self.indent(offset=1)}\"{key}\": {child.define(self.next())}"
             for key, child in obj.children.items()
         ]
         specification += ',\n'.join(speclist) + "\n"

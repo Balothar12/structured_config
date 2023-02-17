@@ -21,8 +21,8 @@ class IndentedSchemaWriter(SchemaWriterBase):
     def construct_next(self, next_indentation: IndentationConfig) -> 'IndentedSchemaWriter':
         raise NotImplementedError()
 
-    def next(self, next_indentation: IndentationConfig):
-        return self.construct_next(next_indentation=next_indentation)
+    def next(self):
+        return self.construct_next(next_indentation=self.indentation.next())
     
     def indent(self, offset: int = 0):
         return self.indentation.token * (self.indentation.level + offset)
