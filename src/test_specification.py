@@ -68,15 +68,25 @@ def run():
                 "number": "111c",
                 "zip": 12345,
                 "city": "Berlin",
+                "occupants": [
+                    {
+                        "first_name": "Max",
+                        "last_name": "Mustermann",
+                    },
+                    {
+                        "first_name": "Maxine",
+                        "last_name": "Musterfrau",
+                    }
+                ]
             }
         ]
     }
 
-    # print(json.dumps(
-    #     spec.convert(data),
-    #     indent=2,
-    #     ensure_ascii=True,
-    # ))
+    print(json.dumps(
+        spec.convert(data),
+        indent=2,
+        ensure_ascii=True,
+    ))
 
     print(YamlLikeWriter().define(config=spec))
 
