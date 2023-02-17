@@ -1,5 +1,5 @@
 
-from typedefs import ConfigObjectType
+from structured_config.typedefs import ConfigObjectType
 
 class InvalidChildTypeException(Exception):
 

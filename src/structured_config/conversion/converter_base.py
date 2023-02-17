@@ -1,6 +1,6 @@
 
-from typedefs import ConversionSourceType, ConversionTargetType
-from conversion.conversion_type_exception import ConversionTypeException
+from structured_config.typedefs import ConversionSourceType, ConversionTargetType
+from structured_config.conversion.conversion_type_exception import ConversionTypeException
 
 class ConverterBase:
 
@@ -11,9 +11,9 @@ class ConverterBase:
             raise ConversionTypeException(type(other), self.typename())
         
     def typename(self) -> str:
-        pass
+        raise NotImplementedError()
 
     def convert(self, other: ConversionSourceType) -> ConversionTargetType:
-        pass
+        raise NotImplementedError()
 
 

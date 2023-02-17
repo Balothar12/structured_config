@@ -1,29 +1,48 @@
 
-from spec.scalar_config_value import ScalarConfigValue
-from spec.composite_config_value import CompositeConfigValue
-from spec.list_config_value import ListConfigValue
-from spec.config_value_base import ConfigValueBase
-from validation.pass_all_validator import PassAllValidator
-from validation.validator_base import ValidatorBase, ValidatorPhase
-from validation.list_validator import ListValidator
-from conversion.no_op_converter import NoOpConverter
-from conversion.type_casting_converter import TypeCastingConverter
-from conversion.converter_base import ConverterBase
-from typedefs import ConversionSourceType, ConversionTargetType, ConfigObjectType
+from structured_config.spec.scalar_config_value import ScalarConfigValue
+from structured_config.spec.composite_config_value import CompositeConfigValue
+from structured_config.spec.list_config_value import ListConfigValue
+from structured_config.spec.config_value_base import ConfigValueBase
+from structured_config.validation.pass_all_validator import PassAllValidator
+from structured_config.validation.validator_base import ValidatorBase, ValidatorPhase
+from structured_config.validation.list_validator import ListValidator
+from structured_config.conversion.no_op_converter import NoOpConverter
+from structured_config.conversion.type_casting_converter import TypeCastingConverter
+from structured_config.conversion.converter_base import ConverterBase
+from structured_config.typedefs import ConversionSourceType, ConversionTargetType, ConfigObjectType
 from dataclasses import dataclass
-from typing import List, Tuple, Protocol, get_type_hints, Dict, Any, Type
+from typing import List, Tuple, Protocol, get_type_hints, Dict, Any, Type, Callable
 
 class CompositeScalarConfigValueFactory(Protocol):
     def __call__(self, required: bool, default: ConversionTargetType or None) -> ScalarConfigValue: ...
 
 @dataclass
-class CompositeRequirements:
+class _CompositeRequirements:
     required_list: List[str]
     defaults_dict: Dict[str, ConversionTargetType or None]
 
     def __post_init__(self):
-        self.required = lambda: self.required_list
-        self.defaults = lambda: self.defaults_dict
+        self.required: Callable[[], List[str]] = self._get_required
+        self.defaults: Callable[[], Dict[str, ConversionTargetType]] = self._get_defaults
+
+    def _get_required(self) -> List[str]:
+        return self.required_list
+    def _get_defaults(self) -> Dict[str, ConversionTargetType or None]:
+        return self.defaults_dict
+
+class MakeRequirements:
+    
+    @staticmethod
+    def required(required: List[str]):
+        return _CompositeRequirements(required_list=required, defaults_dict={})
+    
+    @staticmethod
+    def optional(defaults: Dict[str, ConversionTargetType or None]):
+        return _CompositeRequirements(required_list=[], defaults_dict=defaults)
+    
+    @staticmethod
+    def mixed(required: List[str], defaults: Dict[str, ConversionTargetType or None]):
+        return _CompositeRequirements(required_list=required, defaults_dict=defaults)
 
 class CompositeEntry:
     """Base class for composite entries
@@ -35,7 +54,7 @@ class CompositeEntry:
 
     def create_value(self, 
                      composite_type: ConversionTargetType or None, 
-                     requirements: CompositeRequirements or None) -> Tuple[str, ConfigValueBase]:
+                     requirements: _CompositeRequirements or None) -> Tuple[str, ConfigValueBase]:
         """Create the config value
 
         This function will be overridden in the base classes. composite_type and requirements are
@@ -49,9 +68,9 @@ class CompositeEntry:
 
     @staticmethod
     def requirements(self, required: List[str], defaults: Dict[str, ConversionTargetType or None]) -> object:
-        return CompositeRequirements(required_list=required, defaults_dict=defaults)
+        return _CompositeRequirements(required_list=required, defaults_dict=defaults)
     
-class CompositeCompositeEntry:
+class MakeCompositeEntry(CompositeEntry):
     """Create a composite entry for a composite config value"""
 
     def __init__(self,
@@ -59,17 +78,17 @@ class CompositeCompositeEntry:
                  entries: List[CompositeEntry],
                  converter: ConverterBase,
                  type: ConversionTargetType or None,
-                 requirements: CompositeRequirements or None):
-        self._name: str = name,
+                 requirements: _CompositeRequirements or None):
+        self._name: str = name
         self._entries: List[CompositeEntry] = entries
         self._converter: ConverterBase = converter
         self._type: ConversionTargetType or None = type
-        self._requirements: CompositeRequirements or None = requirements
+        self._requirements: _CompositeRequirements or None = requirements
         
         
     def create_value(self, 
                      composite_type: ConversionTargetType or None, 
-                     requirements: CompositeRequirements or None) -> Tuple[str, ConfigValueBase]:
+                     requirements: _CompositeRequirements or None) -> Tuple[str, ConfigValueBase]:
         """Create a (name, value) tuple for the defined composite config value
         """
         return (self._name,
@@ -85,7 +104,7 @@ class CompositeCompositeEntry:
     def typed(name: str,
               entries: List[CompositeEntry],
               type: ConversionTargetType,
-              requirements: CompositeRequirements or None = None) -> 'CompositeCompositeEntry':
+              requirements: _CompositeRequirements or None = None) -> 'MakeCompositeEntry':
         """Create a typed list entry for a composite value
 
         See the documentation of "Config.typed_composite()" for details on typed composite config entries.
@@ -94,9 +113,9 @@ class CompositeCompositeEntry:
             name (str): key of the entry in the composite
             entries (List[CompositeEntry]): list of children for this composite
             type (ConversionTargetType): config entry type, must be constructible from a dictionary
-            requirements (CompositeRequirements): optional requirements object
+            requirements (_CompositeRequirements): optional requirements object
         """
-        return CompositeCompositeEntry(
+        return MakeCompositeEntry(
             name=name,
             entries=entries,
             converter=TypeCastingConverter(to=type),
@@ -105,11 +124,11 @@ class CompositeCompositeEntry:
         )
     
     @staticmethod
-    def composite(name: str,
-                  entries: List[CompositeEntry],
-                  converter: ConverterBase = NoOpConverter(),
-                  type: ConversionTargetType or None = None,
-                  requirements: CompositeRequirements or None = None) -> 'CompositeCompositeEntry':
+    def basic(name: str,
+              entries: List[CompositeEntry],
+              converter: ConverterBase = NoOpConverter(),
+              type: ConversionTargetType or None = None,
+              requirements: _CompositeRequirements or None = None) -> 'MakeCompositeEntry':
         """Create a composite entry for a composite value
 
         See the documentation of "Config.composite()" for details on composite config entries.
@@ -119,9 +138,9 @@ class CompositeCompositeEntry:
             entries (List[CompositeEntry]): list of children for this composite
             converter (ConverterBase): type converter, takes a dictionary as its input
             type (ConversionTargetType): optional target type for required and default values
-            requirements (CompositeRequirements): optional requirements object
+            requirements (_CompositeRequirements): optional requirements object
         """
-        return CompositeCompositeEntry(
+        return MakeCompositeEntry(
             name=name,
             entries=entries,
             converter=converter,
@@ -129,75 +148,75 @@ class CompositeCompositeEntry:
             requirements=requirements,
         )
     
-class CompositeListEntry:
+class MakeListEntry(CompositeEntry):
     """Create a list entry for a composite config value"""
 
     def __init__(self,
                  name: str,
-                 entries: ConfigValueBase,
+                 elements: ConfigValueBase,
                  converter: ConverterBase,
                  requirements: ListValidator):
         self._name: str = name
-        self._entries: ConfigValueBase = entries
+        self._elements: ConfigValueBase = elements
         self._converter: ConverterBase = converter
         self._requirements: ListValidator = requirements
         
     def create_value(self, 
                      composite_type: ConversionTargetType or None, 
-                     requirements: CompositeRequirements or None) -> Tuple[str, ConfigValueBase]:
+                     requirements: _CompositeRequirements or None) -> Tuple[str, ConfigValueBase]:
         """Create a (name, value) tuple for the defined list config value
         """
         return (self._name, ListConfigValue(
-            child_definition=self._entries,
+            child_definition=self._elements,
             list_requirements=self._requirements,
             converter=self._converter,
         ))
 
     @staticmethod
     def typed(name: str,
-              entries: ConfigValueBase,
+              elements: ConfigValueBase,
               type: ConversionTargetType,
-              requirements: ListValidator = ListValidator()) -> 'CompositeListEntry':
+              requirements: ListValidator = ListValidator()) -> 'MakeListEntry':
         """Create a typed list entry for a composite value
 
         See the documentation of "Config.typed_list()" for details on typed list config entries.
             
         Args
             name (str): key of the list in the composite
-            entries (ConfigValueBase): list element definition
+            elements (ConfigValueBase): list element definition
             type (ConversionTargetType): list-constructible target type for this config value
             requirements (ListValidator): list requirements
         """
-        return CompositeListEntry(
+        return MakeListEntry(
             name=name,
-            entries=entries,
+            elements=elements,
             converter=TypeCastingConverter(to=type),
             requirements=requirements,
         )
     
     @staticmethod
-    def list(name: str,
-             entries: ConfigValueBase,
-             requirements: ListValidator = ListValidator(),
-             converter: ConverterBase = ConverterBase()) -> 'CompositeListEntry':
+    def basic(name: str,
+              elements: ConfigValueBase,
+              requirements: ListValidator = ListValidator(),
+              converter: ConverterBase = ConverterBase()) -> 'MakeListEntry':
         """Create a list entry for a composite value
 
         See the documentation of "Config.list()" for details on list config entries.
         
         Args
             name (str): key of the list in the composite
-            entries (ConfigValueBase): list element definition
+            elements (ConfigValueBase): list element definition
             requirements (ListValidator): list requirements
             converter (ConverterBase): optional converter to convert the list into another type
         """
-        return CompositeListEntry(
+        return MakeListEntry(
             name=name,
-            entries=entries,
+            elements=elements,
             converter=converter,
             requirements=requirements,
         )
     
-class CompositeScalarEntry:
+class MakeScalarEntry(CompositeEntry):
     """Create a scalar entry for a composite config value
     """
 
@@ -209,17 +228,17 @@ class CompositeScalarEntry:
 
     def create_value(self, 
                      composite_type: ConversionTargetType or None, 
-                     requirements: CompositeRequirements or None) -> Tuple[str, ConfigValueBase]:
+                     requirements: _CompositeRequirements or None) -> Tuple[str, ConfigValueBase]:
         """Create a (name, value) tuple for the defined scalar config value
         """
-        return self._factory(
+        return (self._name, self._factory(
             required=self._find_required(composite_type=composite_type, requirements=requirements), 
             default=self._find_default(composite_type=composite_type, requirements=requirements)
-        )
+        ))
     
     def _get_required_method(self, 
                              composite_type: ConversionTargetType or None, 
-                             requirements: CompositeRequirements or None) -> Any:
+                             requirements: _CompositeRequirements or None) -> Any:
         return self._get_method_with_fallback(main=composite_type, 
                                               fallback=requirements, 
                                               method="required",
@@ -227,7 +246,7 @@ class CompositeScalarEntry:
     
     def _get_defaults_method(self, 
                              composite_type: ConversionTargetType or None, 
-                             requirements: CompositeRequirements or None) -> Any:
+                             requirements: _CompositeRequirements or None) -> Any:
         return self._get_method_with_fallback(main=composite_type, 
                                               fallback=requirements, 
                                               method="defaults",
@@ -243,24 +262,24 @@ class CompositeScalarEntry:
         Try the main object first, then try the fallback object. If neither has a matching attribute, 
         return "None", otherwise return the callable attribute.
         """
-        method: Any = None
+        method_attr: Any = None
         if main != None:
             attr = getattr(main, method, None)
-            if attr != None and callable(attr) and get_type_hints(attr)["return"] is expected_return_type:
-                method = attr
-        if method == None and fallback != None:
+            if attr != None and callable(attr) and get_type_hints(attr)["return"].__origin__ is expected_return_type:
+                method_attr = attr
+        if method_attr == None and fallback != None:
             attr = getattr(fallback, method, None)
-            if attr != None and callable(attr) and get_type_hints(attr)["return"] is expected_return_type:
-                method = attr
-        return method
+            if attr != None and callable(attr) and get_type_hints(attr)["return"].__origin__ is expected_return_type:
+                method_attr = attr
+        return method_attr
     
     def _find_required(self, 
                        composite_type: ConversionTargetType or None, 
-                       requirements: CompositeRequirements or None) -> bool:
+                       requirements: _CompositeRequirements or None) -> bool:
         # get the "required" method
         required_method = self._get_required_method(composite_type=composite_type, requirements=requirements)
         # verify the method
-        if callable(required_method) and get_type_hints(required_method)["return"] is list:
+        if callable(required_method) and get_type_hints(required_method)["return"].__origin__ is list:
             # get the default value
             return self._name in required_method()
         else:
@@ -271,11 +290,11 @@ class CompositeScalarEntry:
 
     def _find_default(self, 
                        composite_type: ConversionTargetType or None, 
-                       requirements: CompositeRequirements or None) -> ConversionTargetType:
+                       requirements: _CompositeRequirements or None) -> ConversionTargetType:
         # get the "defaults" method
         defaults_method = self._get_defaults_method(composite_type=composite_type, requirements=requirements)
         # verify the method
-        if callable(defaults_method) and get_type_hints(defaults_method)["return"] is dict:
+        if callable(defaults_method) and get_type_hints(defaults_method)["return"].__origin__ is dict:
             # get the default value
             return defaults_method().get(self._name, None)
         else:
@@ -283,8 +302,9 @@ class CompositeScalarEntry:
             return None
     
     @staticmethod
-    def value(name: str,
-              validator: ValidatorBase = PassAllValidator()) -> 'CompositeScalarEntry':
+    def basic(name: str,
+              type: Type or None = None,
+              validator: ValidatorBase = PassAllValidator()) -> 'MakeScalarEntry':
         """Create a simple scalar entry
 
         No type conversion, meaning that the type is used as-is from the config IO layer.
@@ -293,13 +313,13 @@ class CompositeScalarEntry:
             name (str): key of the value within its composite parent
             validator (ValidatorBase): optional validator
         """
-        return CompositeScalarEntry(
+        return MakeScalarEntry(
             name=name,
             create_config_value=lambda required, default: Config.value(
                 validator=validator, 
-                validate_when=ValidatorPhase.BeforeConversion, 
                 required=required, 
-                default=default
+                default=default,
+                type=type
             )
         )
 
@@ -307,7 +327,7 @@ class CompositeScalarEntry:
     def typed(name: str,
               type: ConversionTargetType,
               validator: ValidatorBase = PassAllValidator(),
-              validate_when: ValidatorPhase = ValidatorPhase.BeforeConversion) -> 'CompositeScalarEntry':
+              validate_when: ValidatorPhase = ValidatorPhase.BeforeConversion) -> 'MakeScalarEntry':
         """Create a typed scalar entry
 
         Type from IO layer is passed directly to the constructor of the specified target type
@@ -318,7 +338,7 @@ class CompositeScalarEntry:
             validator (ValidatorBase): optional validator
             validate_when (ValidatorPhase): specify if the validation should happen before or after conversion
         """
-        return CompositeScalarEntry(
+        return MakeScalarEntry(
             name=name,
             create_config_value=lambda required, default: Config.typed_value(
                 type=type,
@@ -333,7 +353,7 @@ class CompositeScalarEntry:
     def complex(name: str,
                 converter: ConverterBase,
                 validator: ValidatorBase = PassAllValidator(),
-                validate_when: ValidatorPhase = ValidatorPhase.BeforeConversion) -> 'CompositeScalarEntry':
+                validate_when: ValidatorPhase = ValidatorPhase.BeforeConversion) -> 'MakeScalarEntry':
         """Create a complex typed scalar entry
 
         Here a custom conversion operator may be specified. This converter will be called with the IO-layer value.
@@ -344,7 +364,7 @@ class CompositeScalarEntry:
             validator (ValidatorBase): optional validator
             validate_when (ValidatorPhase): specify if the validation should happen before or after conversion
         """
-        return CompositeScalarEntry(
+        return MakeScalarEntry(
             name=name,
             create_config_value=lambda required, default: Config.complex_value(
                 converter=converter,
@@ -359,11 +379,14 @@ class Config:
 
     @staticmethod
     def value(validator: ValidatorBase = PassAllValidator(),
+              type: Type or None = None,
               required: bool = True,
               default: ConfigObjectType or None = None) -> ScalarConfigValue:
         """Create a simple scalar value
 
-        No type conversion, meaning that the type is used as-is from the config IO layer.
+        No type conversion, meaning that the type is used as-is from the config IO layer. However, an excepted type 
+        may still be specified to indicate that the config file value should have that type. If a type is specified,
+        it is checked during conversion. Otherwise, any type is allowed.
 
         Args:
             name (str): key of the value within its composite parent
@@ -372,7 +395,7 @@ class Config:
         return ScalarConfigValue(
             validator=validator,
             validator_phase=ValidatorPhase.BeforeConversion,
-            converter=NoOpConverter(),
+            converter=NoOpConverter(expected_type=type),
             required=required,
             default=default
         )
@@ -429,7 +452,7 @@ class Config:
     @staticmethod
     def typed_composite(entries: List[CompositeEntry],
                         type: ConversionTargetType,
-                        requirements: CompositeRequirements or None = None) -> CompositeConfigValue:
+                        requirements: _CompositeRequirements or None = None) -> CompositeConfigValue:
         """Create a typed composite value
         
         During the conversion process, the dictionary created by the entry list will be passed to the type's 
@@ -439,13 +462,13 @@ class Config:
         Additionally, if your target type defines the static methods "required" and "defaults", these are used
         to define which scalar child-values are required, and what there default values will be if they aren't
         required. If your target class doesn't define those methods, and you can't/don't want to add them, it
-        is also possible to specify the lists in a CompositeRequirements object. If you do not specify any 
+        is also possible to specify the lists in a _CompositeRequirements object. If you do not specify any 
         requirements, all entries are assumed to be required
 
         Args:
             entries (List[CompositeEntry]): list of children for this composite
             type (ConversionTargetType): config entry type, must be constructible from a dictionary
-            requirements (CompositeRequirements): optional requirements object
+            requirements (_CompositeRequirements): optional requirements object
         """
         
         return CompositeConfigValue(
@@ -459,18 +482,18 @@ class Config:
     def composite(entries: List[CompositeEntry],
                   converter: ConverterBase = NoOpConverter(),
                   type: ConversionTargetType or None = None,
-                  requirements: CompositeRequirements or None = None) -> CompositeConfigValue:
+                  requirements: _CompositeRequirements or None = None) -> CompositeConfigValue:
         """Create a composite with a custom type converter
         
         If your target type does not support a dictionary constructor, or you want to perform some complex
         conversion operation, you need to use this method. You can still specify an output type to retrieve
-        required and default values, or as above use a CompositeRequirements object.
+        required and default values, or as above use a _CompositeRequirements object.
 
         Args:
             entries (List[CompositeEntry]): list of children for this composite
             converter (ConverterBase): type converter, takes a dictionary as its input
             type (ConversionTargetType): optional target type for required and default values
-            requirements (CompositeRequirements): optional requirements object
+            requirements (_CompositeRequirements): optional requirements object
         """
         
         return CompositeConfigValue(
@@ -481,7 +504,7 @@ class Config:
         )
     
     @staticmethod
-    def typed_list(entries: ConfigValueBase,
+    def typed_list(elements: ConfigValueBase,
                    type: ConversionTargetType,
                    requirements: ListValidator = ListValidator()):
         """Create a list entry and convert the list to another type
@@ -494,20 +517,20 @@ class Config:
         is more complex, or you need the list as-is, use the "list()" method instead.
 
         Args
-            entries (ConfigValueBase): list element definition
+            elements (ConfigValueBase): list element definition
             type (ConversionTargetType): list-constructible target type for this config value
             requirements (ListValidator): list requirements
 
         """
         
         return ListConfigValue(
-            child_definition=entries,
+            child_definition=elements,
             list_requirements=requirements,
             converter=TypeCastingConverter(to=type),
         )
     
     @staticmethod
-    def list(entries: ConfigValueBase,
+    def list(elements: ConfigValueBase,
              requirements: ListValidator = ListValidator(),
              converter: ConverterBase = NoOpConverter()):
         """Create a list entry
@@ -520,13 +543,13 @@ class Config:
         typed_list if your target type's constructor can directly a list.
 
         Args
-            entries (ConfigValueBase): list element definition
+            elements (ConfigValueBase): list element definition
             requirements (ListValidator): list requirements
             converter (ConverterBase): optional converter to convert the list into another type
         """
         
         return ListConfigValue(
-            child_definition=entries,
+            child_definition=elements,
             list_requirements=requirements,
             converter=converter
         )

@@ -1,5 +1,5 @@
-from typedefs import ValidatorSourceType
-from validation.validator_base import ValidatorBase
+from structured_config.typedefs import ValidatorSourceType
+from structured_config.validation.validator_base import ValidatorBase
 
 class PassAllValidator(ValidatorBase):
     

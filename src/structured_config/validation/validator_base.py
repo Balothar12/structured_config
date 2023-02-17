@@ -1,7 +1,7 @@
 
 from typing import TypeVar
-from validation.validation_exception import ValidationException
-from typedefs import ValidatorSourceType
+from structured_config.validation.validation_exception import ValidationException
+from structured_config.typedefs import ValidatorSourceType
 from enum import Enum
 
 ObjectType = TypeVar("ObjectType")

@@ -1,5 +1,5 @@
 
-from typedefs import ConversionSourceType, ConversionTargetType
+from structured_config.typedefs import ConversionSourceType, ConversionTargetType
 
 class ConversionTypeException(Exception):
 

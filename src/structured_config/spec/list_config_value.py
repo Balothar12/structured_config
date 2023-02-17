@@ -1,9 +1,9 @@
-from spec.config_value_base import ConfigValueBase
-from conversion.converter_base import ConverterBase
-from conversion.no_op_converter import NoOpConverter
-from typedefs import ConfigObjectType, ConversionTargetType
-from spec.invalid_child_type_exception import InvalidChildTypeException
-from validation.list_validator import ListValidator
+from structured_config.spec.config_value_base import ConfigValueBase
+from structured_config.conversion.converter_base import ConverterBase
+from structured_config.conversion.no_op_converter import NoOpConverter
+from structured_config.typedefs import ConfigObjectType, ConversionTargetType
+from structured_config.spec.invalid_child_type_exception import InvalidChildTypeException
+from structured_config.validation.list_validator import ListValidator
 from typing import List, Tuple
 
 class ListConfigValue(ConfigValueBase):
@@ -23,6 +23,20 @@ class ListConfigValue(ConfigValueBase):
         self._child_definition: ConfigValueBase = child_definition
         self._requirements: ListValidator = list_requirements
         self._list_converter: ConverterBase = converter
+
+    def specify(self, indentation_level: int = 0, indentation_token: str = "  ") -> str:
+        
+        # get indentation string
+        indent: str = self.indent(level=indentation_level, token=indentation_token)
+
+        # start specification string construction 
+        specification: str = f"{indent}[{self._requirements.specify()}\n"
+        
+        # add child specification
+        specification = (f"{specification}{self._child_definition.specify(indentation_level=indentation_level + 1, indentation_token=indentation_token)}")
+
+        # finish list specification
+        return f"{specification}{indent}]\n"
 
     def convert(self, input: ConfigObjectType or None, key: str, parent_key: str) -> ConversionTargetType:
 

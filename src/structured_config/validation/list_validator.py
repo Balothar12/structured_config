@@ -1,6 +1,6 @@
 
-from typedefs import ConversionTargetType
-from validation.validation_exception import ValidationException
+from structured_config.typedefs import ConversionTargetType
+from structured_config.validation.validation_exception import ValidationException
 from typing import List
 
 class ListValidator:
@@ -48,6 +48,7 @@ class ListValidator:
         if self._strict != None:
             return len(values) == self._strict
         
+        # check limits
         within_limits = True
         if self._min != None:
             within_limits = within_limits and (\
@@ -68,3 +69,44 @@ class ListValidator:
         and implement "validate".
         """
         return True
+
+    def specify(self) -> str:
+        """Construct a specification string that include the set list limits
+        
+        You may override this to give users more information about your custom
+        list validation routines in the config specification string
+        """
+        
+        # check strict count
+        if self._strict != None:
+            return f" list must fulfill len = {self._strict}"
+        
+        # check limits
+        elif self._min != None and self._max == None:
+            bound: str = ">="
+            if self._min_exclusive:
+                bound = ">"
+            return f" list must fulfill len {bound} {self._min}"
+            
+        elif self._max != None and self._min == None:
+            bound: str = "<="
+            if self._max_exclusive:
+                bound = "<"
+            return f" list must fulfill len {bound} {self._max}"
+            pass
+
+        elif self._max != None and self._min != None:
+            lower_bound: str = "<="
+            if self._min_exclusive:
+                lower_bound = "<"
+
+            upper_bound: str = "<="
+            if self._max_exclusive:
+                upper_bound = "<"
+            
+            return f"list must fulfill len {self._min} {lower_bound} len {upper_bound} {self._max}"
+        else:
+            return ""
+
+
+

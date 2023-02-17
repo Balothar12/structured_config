@@ -1,7 +1,7 @@
 
-from typedefs import ConversionSourceType, ConversionTargetType
+from structured_config.typedefs import ConversionSourceType, ConversionTargetType
 
-from conversion.converter_base import ConverterBase
+from structured_config.conversion.converter_base import ConverterBase
 
 class TypeCastingConverter(ConverterBase):
     
