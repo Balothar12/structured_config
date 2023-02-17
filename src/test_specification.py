@@ -1,12 +1,12 @@
 
-from structured_config.spec.config import Config, MakeScalarEntry, MakeListEntry, MakeCompositeEntry, MakeRequirements
+from structured_config.spec.config import Config, MakeScalarEntry, MakeListEntry, MakeCompositeEntry, MakeRequirements, ListValidator
 
 import json
 
 def run():
     spec = Config.composite(
         entries=[
-            MakeCompositeEntry.typed(
+            MakeCompositeEntry.basic(
                 name="person",
                 entries=[
                     MakeScalarEntry.typed(name="first_name", type=str),
@@ -21,7 +21,7 @@ def run():
                     "gender"
                 ]),
             ),
-            MakeListEntry.typed(
+            MakeListEntry.basic(
                 name="addresses",
                 elements=Config.composite(
                     entries=[
@@ -39,7 +39,7 @@ def run():
                     ], defaults={
                         "secondary": None,
                     }),
-                )
+                ),
             )
         ]
     )
@@ -67,7 +67,7 @@ def run():
         ensure_ascii=True,
     ))
 
-    # print(spec.specify())
+    print(spec.specify())
 
 if __name__ == "__main__":
     run()

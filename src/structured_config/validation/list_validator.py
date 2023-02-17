@@ -33,7 +33,7 @@ class ListValidator:
         self._strict: int or None = strict_count
 
     def __call__(self, values: List[ConversionTargetType]) -> List[ConversionTargetType]:
-        if not self.validate(values=values):
+        if not self._validate_list(values=values):
             raise ValidationException(value=values, reason="List failed to validate with the following data: "
                                       f"{'{'}length={len(values)}, min={self._min}, max={self._max}, strict={self._strict}, "
                                       f"min_exclusive={self._min_exclusive}, max_exclusive={self._max_exclusive}{']'}")
@@ -53,12 +53,12 @@ class ListValidator:
         if self._min != None:
             within_limits = within_limits and (\
                 (self._min_exclusive and len(values) > self._min) or \
-                (not self._min_exclusive and len(values >= self._min)))
+                (not self._min_exclusive and len(values) >= self._min))
             
         if self._max != None:
             within_limits = within_limits and (\
                 (self._max_exclusive and len(values) < self._max) or \
-                (not self._max_exclusive and len(values <= self._max)))
+                (not self._max_exclusive and len(values) <= self._max))
             
         return within_limits
 
@@ -79,32 +79,32 @@ class ListValidator:
         
         # check strict count
         if self._strict != None:
-            return f" list must fulfill len = {self._strict}"
+            return f" list must have len = {self._strict}"
         
         # check limits
         elif self._min != None and self._max == None:
             bound: str = ">="
             if self._min_exclusive:
                 bound = ">"
-            return f" list must fulfill len {bound} {self._min}"
+            return f" list must have len {bound} {self._min}"
             
         elif self._max != None and self._min == None:
             bound: str = "<="
             if self._max_exclusive:
                 bound = "<"
-            return f" list must fulfill len {bound} {self._max}"
+            return f" list must have len {bound} {self._max}"
             pass
 
         elif self._max != None and self._min != None:
-            lower_bound: str = "<="
+            lower_bound: str = "["
             if self._min_exclusive:
-                lower_bound = "<"
+                lower_bound = "("
 
-            upper_bound: str = "<="
+            upper_bound: str = "]"
             if self._max_exclusive:
-                upper_bound = "<"
+                upper_bound = ")"
             
-            return f"list must fulfill len {self._min} {lower_bound} len {upper_bound} {self._max}"
+            return f" list must have len in {lower_bound}{self._min}, {self._max}{upper_bound} "
         else:
             return ""
 
