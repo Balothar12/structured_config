@@ -51,7 +51,7 @@ class ScalarConfigValue(ConfigValueBase):
         # check if the value exists
         if input == None:
             if self._required:
-                raise RequiredValueNotFoundException(value_name=self.extend_key(aggregate=aggregate_key, key=key))
+                raise RequiredValueNotFoundException(value_name=self.extend_key(aggregate=parent_key, key=key))
             else:
                 return self._default
 
