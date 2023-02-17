@@ -1,4 +1,5 @@
 
+from structured_config.io.schema.json_like_writer import JsonLikeWriter
 from structured_config.spec.config import Config, MakeScalarEntry, MakeListEntry, MakeCompositeEntry, MakeRequirements, ListValidator
 
 import json
@@ -63,11 +64,11 @@ def run():
 
     print(json.dumps(
         spec.convert(data),
-        indent=True,
+        indent=2,
         ensure_ascii=True,
     ))
 
-    print(spec.specify())
+    print(JsonLikeWriter().define(config=spec))
 
 if __name__ == "__main__":
     run()

@@ -2,6 +2,10 @@
 
 from structured_config.typedefs import ConfigObjectType, ConversionTargetType
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from structured_config.io.schema.schema_writer_base import DefinitionBase
+
 class ConfigValueBase:
 
     def __init__(self):
@@ -14,8 +18,8 @@ class ConfigValueBase:
         """Convert a config object to a converted application object"""
         raise NotImplementedError()
     
-    def specify(self, indentation_level: int = 0, indentation_token: str = "  ") -> str:
-        """Build a string containing a readable specification of this config value"""
+    def specify(self) -> 'DefinitionBase':
+        """Get the specification definition object"""
         raise NotImplementedError()
     
     def indent(self, level: int, token: str):

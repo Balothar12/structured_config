@@ -1,5 +1,6 @@
 
 from structured_config.spec.config_value_base import ConfigValueBase
+from structured_config.io.schema.schema_writer_base import ValueDefinition
 from structured_config.conversion.converter_base import ConverterBase
 from structured_config.validation.validator_base import ValidatorBase, ValidatorPhase
 from structured_config.validation.pass_all_validator import PassAllValidator
@@ -7,6 +8,10 @@ from structured_config.conversion.no_op_converter import NoOpConverter
 from structured_config.typedefs import ConfigObjectType, ConversionTargetType
 from structured_config.spec.required_value_not_found_exception import RequiredValueNotFoundException
 from structured_config.spec.invalid_spec_exception import InvalidSpecException
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from structured_config.io.schema.schema_writer_base import DefinitionBase
 
 class ScalarConfigValue(ConfigValueBase):
     """Scalar config value class
@@ -46,18 +51,23 @@ class ScalarConfigValue(ConfigValueBase):
         if self._default != None and self._required:
             raise InvalidSpecException(reason="Cannot have default values for required config values")
         
-    def specify(self, indentation_level: int = 0, indentation_token: str = "  ") -> str:
+    def specify(self) -> 'DefinitionBase':
+        return ValueDefinition(
+            type=self._converter.type(), 
+            required=self._required, 
+            default=self._default,
+        )
 
-        # get indentation string
-        indent: str = self.indent(level=indentation_level, token=indentation_token)
+        # # get indentation string
+        # indent: str = self.indent(level=indentation_level, token=indentation_token)
 
-        # get requirement string
-        requirement: str = "required"
-        if not self._required:
-            requirement = f"optional, defaults to '{self._default}'"
+        # # get requirement string
+        # requirement: str = "required"
+        # if not self._required:
+        #     requirement = f"optional, defaults to '{self._default}'"
 
-        # construct specification
-        return f"'{self._converter.typename()}' value, {requirement}\n"
+        # # construct specification
+        # return f"'{self._converter.typename()}' value, {requirement}"
 
     def convert(self, input: ConfigObjectType or None, key: str = "", parent_key: str = "") -> ConversionTargetType:
 

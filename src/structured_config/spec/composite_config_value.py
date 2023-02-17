@@ -1,12 +1,17 @@
 
 from structured_config.spec.config_value_base import ConfigValueBase
+from structured_config.io.schema.schema_writer_base import ObjectDefinition
 from structured_config.spec.list_config_value import ListConfigValue
 from structured_config.conversion.converter_base import ConverterBase
 from structured_config.validation.pass_all_validator import PassAllValidator
 from structured_config.conversion.no_op_converter import NoOpConverter
 from structured_config.typedefs import ConfigObjectType, ConversionTargetType
 from structured_config.spec.invalid_child_type_exception import InvalidChildTypeException
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from structured_config.io.schema.schema_writer_base import DefinitionBase
 
 class CompositeConfigValue(ConfigValueBase):
     """Composite config value class
@@ -30,24 +35,30 @@ class CompositeConfigValue(ConfigValueBase):
         self._children: Dict[str, ConfigValueBase] = expected_children
         self._converter: ConverterBase = converter
 
-    def specify(self, indentation_level: int = 0, indentation_token: str = "  ") -> str:
+    def specify(self) -> 'DefinitionBase':
+        return ObjectDefinition({key: value.specify() for key, value in self._children.items()})
         
-        # get indentation string
-        indent: str = self.indent(level=indentation_level, token=indentation_token)
+        # # get indentation string
+        # indent: str = self.indent(level=indentation_level, token=indentation_token)
 
-        # start specification string construction 
-        specification: str = f"{indent}{{\n"
+        # # start specification string construction 
+        # specification: str = f"{{\n"
 
-        # get the specification from each child
-        for key, child in self._children.items():
-            trailing: str = ""
-            if isinstance(child, CompositeConfigValue) or isinstance(child, ListConfigValue):
-                trailing = "\n"
-            specification = (f"{specification}{indent}{indentation_token}\"{key}\": {trailing}"
-                             f"{child.specify(indentation_level=indentation_level + 1, indentation_token=indentation_token)}")
+        # # get the specification from each child
+        # speclist: List[str] = [
+        #     f"{indent}{indentation_token}\"{key}\": {child.specify(indentation_level=indentation_level + 1, indentation_token=indentation_token)}"
+        #     for key, child in self._children.items()
+        # ]
+        # specification += ',\n'.join(speclist) + "\n"
+        # # for key, child in self._children.items():
+        # #     # trailing: str = ""
+        # #     # if isinstance(child, CompositeConfigValue) or isinstance(child, ListConfigValue):
+        # #     #     trailing = "\n"
+        # #     specification = (f"{specification}{indent}{indentation_token}\"{key}\": "#{trailing}"
+        # #                      f"{child.specify(indentation_level=indentation_level + 1, indentation_token=indentation_token)}\n")
             
-        # close the composite specification
-        return f"{specification}{indent}}}\n"
+        # # close the composite specification
+        # return f"{specification}{indent}}}"
 
     def convert(self, input: ConfigObjectType or None, key: str = "", parent_key: str = "") -> ConversionTargetType:
 
