@@ -1,13 +1,13 @@
-person:
-  first_name: Max
-  last_name: Mustermann
-  age: 39
-  gender: male
-addresses:
-  - street: Musterstr
-    number: 13c
-    zip: 12345
-    city: berlin
-    occupants:
-      - first_name: Max
-        last_name: Mustermann
+Person:
+  FirstName: Max
+  LastName: Mustermann
+  Age: 39
+  Gender: male
+Addresses:
+  - Street: Musterstr
+    Number: 13c
+    Zip: 12345
+    City: Berlin
+    Occupants:
+      - FirstName: Max
+        LastName: Mustermann

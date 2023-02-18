@@ -53,21 +53,11 @@ class ScalarConfigValue(ConfigValueBase):
         
     def specify(self) -> 'DefinitionBase':
         return ValueDefinition(
+            key_case=self.get_source_case(),
             type=self._converter.type(), 
             required=self._required, 
             default=self._default,
         )
-
-        # # get indentation string
-        # indent: str = self.indent(level=indentation_level, token=indentation_token)
-
-        # # get requirement string
-        # requirement: str = "required"
-        # if not self._required:
-        #     requirement = f"optional, defaults to '{self._default}'"
-
-        # # construct specification
-        # return f"'{self._converter.typename()}' value, {requirement}"
 
     def convert(self, input: ConfigObjectType or None, key: str = "", parent_key: str = "") -> ConversionTargetType:
 

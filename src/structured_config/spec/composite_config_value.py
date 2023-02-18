@@ -1,4 +1,5 @@
 
+from structured_config.io.case_translation.case_translator_base import CaseTranslatorBase
 from structured_config.spec.config_value_base import ConfigValueBase
 from structured_config.io.schema.schema_writer_base import ObjectDefinition
 from structured_config.spec.list_config_value import ListConfigValue
@@ -36,29 +37,10 @@ class CompositeConfigValue(ConfigValueBase):
         self._converter: ConverterBase = converter
 
     def specify(self) -> 'DefinitionBase':
-        return ObjectDefinition({key: value.specify() for key, value in self._children.items()})
-        
-        # # get indentation string
-        # indent: str = self.indent(level=indentation_level, token=indentation_token)
-
-        # # start specification string construction 
-        # specification: str = f"{{\n"
-
-        # # get the specification from each child
-        # speclist: List[str] = [
-        #     f"{indent}{indentation_token}\"{key}\": {child.specify(indentation_level=indentation_level + 1, indentation_token=indentation_token)}"
-        #     for key, child in self._children.items()
-        # ]
-        # specification += ',\n'.join(speclist) + "\n"
-        # # for key, child in self._children.items():
-        # #     # trailing: str = ""
-        # #     # if isinstance(child, CompositeConfigValue) or isinstance(child, ListConfigValue):
-        # #     #     trailing = "\n"
-        # #     specification = (f"{specification}{indent}{indentation_token}\"{key}\": "#{trailing}"
-        # #                      f"{child.specify(indentation_level=indentation_level + 1, indentation_token=indentation_token)}\n")
-            
-        # # close the composite specification
-        # return f"{specification}{indent}}}"
+        return ObjectDefinition(
+            key_case=self.get_source_case(),
+            children={key: value.specify() for key, value in self._children.items()},
+        )
 
     def convert(self, input: ConfigObjectType or None, key: str = "", parent_key: str = "") -> ConversionTargetType:
 
@@ -73,7 +55,7 @@ class CompositeConfigValue(ConfigValueBase):
                     self._convert_one(
                         value=child, 
                         input=None, 
-                        key=child_key, 
+                        key=self.translate_to_source(key=child_key), 
                         parent_key=this_key
                     ) for child_key, child in self._children.items()
                 ]
@@ -98,8 +80,8 @@ class CompositeConfigValue(ConfigValueBase):
                         # try and retrieve the child object from the input
                         # if that fails, we use "None" as the default to 
                         # trigger the default/requirement check in the child
-                        input=input.get(child_key, None), 
-                        key=child_key, 
+                        input=input.get(self.translate_to_source(child_key), None), 
+                        key=self.translate_to_source(child_key), 
                         parent_key=this_key
                     ) for child_key, child in self._children.items()
                 ]
@@ -113,8 +95,17 @@ class CompositeConfigValue(ConfigValueBase):
                      input: ConfigObjectType or None, 
                      key: str, 
                      parent_key: str) -> Tuple[str, ConversionTargetType]:
-        return (key, value.convert(
+        # Apply case translation to the key: this way the original case will be checked
+        # as required, but the user-specified conversion routines will receive the key in 
+        # the case they expect.
+        return (self.translate_to_target(key=key), value.convert(
             input=input,
             key=key,
             parent_key=parent_key
         ))
+    
+    def translate_case(self, target: CaseTranslatorBase, source: CaseTranslatorBase = ...) -> 'ConfigValueBase':
+        super().translate_case(target, source)
+        for child in self._children.values():
+            child.translate_case(target=target, source=source)
+        return self

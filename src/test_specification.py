@@ -1,9 +1,11 @@
 
+from structured_config.io.case_translation.pascal_case import PascalCase
 from structured_config.io.schema.json_like_writer import JsonLikeWriter
 from structured_config.io.schema.yaml_like_writer import YamlLikeWriter
 from structured_config.spec.config import Config, MakeScalarEntry, MakeListEntry, MakeCompositeEntry, MakeRequirements, ListValidator
 from structured_config.io.reader.json_reader import JsonReader
 from structured_config.io.reader.yaml_reader import YamlReader
+from structured_config.io.case_translation.snake_case import SnakeCase
 
 import json
 
@@ -41,6 +43,10 @@ def run():
                                     MakeScalarEntry.typed(name="first_name", type=str),
                                     MakeScalarEntry.typed(name="last_name", type=str),
                                 ],
+                                requirements=MakeRequirements.required([
+                                    "first_name",
+                                    "last_name",
+                                ]),
                             ),
                         ),
                     ],
@@ -90,18 +96,25 @@ def run():
     #     ensure_ascii=True,
     # ))
 
-    print(YamlLikeWriter().define(config=spec))
+    print(YamlLikeWriter(with_schema_case=True).define(config=spec))
+    print(JsonLikeWriter(with_schema_case=True).define(config=spec))
 
     json_reader: JsonReader = JsonReader("test/person.json")
     print(json.dumps(
-        spec.convert(json_reader.read()),
+        spec
+            .expect_source_case(source=SnakeCase())
+            .require_target_case(target=SnakeCase())
+            .convert(json_reader.read()),
         indent=2,
         ensure_ascii=True
     ))
     
     yaml_reader: YamlReader = YamlReader("test/person.yaml")
     print(json.dumps(
-        spec.convert(yaml_reader.read()),
+        spec
+            .expect_source_case(source=PascalCase())
+            .require_target_case(target=SnakeCase())
+            .convert(yaml_reader.read()),
         indent=2,
         ensure_ascii=True
     ))

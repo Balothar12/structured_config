@@ -1,4 +1,5 @@
 
+from structured_config.io.case_translation.case_translator_base import CaseTranslatorBase
 from structured_config.spec.config_value_base import ConfigValueBase
 from dataclasses import dataclass, field
 from typing import Type, Dict, List
@@ -24,6 +25,7 @@ class SpecType(Enum):
 @dataclass
 class DefinitionBase:
     spec_type: SpecType = field(default=False, init=False)
+    key_case: CaseTranslatorBase
 
     def define(self, schema_writer: 'SchemaWriterBase') -> str:
         if self.spec_type == SpecType.Value:

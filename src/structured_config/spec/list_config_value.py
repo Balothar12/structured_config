@@ -1,3 +1,4 @@
+from structured_config.io.case_translation.case_translator_base import CaseTranslatorBase
 from structured_config.spec.config_value_base import ConfigValueBase
 from structured_config.io.schema.schema_writer_base import ListDefinition
 from structured_config.conversion.converter_base import ConverterBase
@@ -31,6 +32,7 @@ class ListConfigValue(ConfigValueBase):
 
     def specify(self) -> 'DefinitionBase':
         return ListDefinition(
+            key_case=self.get_source_case(),
             children=self._child_definition.specify(),
             min=self._requirements.min,
             max=self._requirements.max,
@@ -86,3 +88,8 @@ class ListConfigValue(ConfigValueBase):
             key=key,
             parent_key=parent_key
         )
+
+    def translate_case(self, target: CaseTranslatorBase, source: CaseTranslatorBase = ...) -> 'ConfigValueBase':
+        super().translate_case(target, source)
+        self._child_definition.translate_case(target=target, source=source)
+        return self

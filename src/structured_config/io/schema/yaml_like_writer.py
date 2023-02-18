@@ -1,16 +1,36 @@
 
+from structured_config.io.case_translation.case_translator_base import CaseTranslatorBase
+from structured_config.io.case_translation.pascal_case import PascalCase
 from structured_config.io.schema.indented_schema_writer import IndentedSchemaWriter, IndentationConfig
 from structured_config.io.schema.schema_writer_base import ObjectDefinition, ListDefinition, ValueDefinition, SpecType
+from structured_config.spec.config_value_base import ConfigValueBase
 
 from typing import List
 
+
 class YamlLikeWriter(IndentedSchemaWriter):
 
-    def __init__(self, indentation: IndentationConfig = IndentationConfig()):
+    def __init__(self, 
+                 indentation: IndentationConfig = IndentationConfig(), 
+                 with_schema_case: bool = False, 
+                 schema_case: CaseTranslatorBase = PascalCase()):
         super().__init__(indentation=indentation)
+        self._schema_case = schema_case
+        self._with_schema_case = with_schema_case
+
+    def define(self, config: ConfigValueBase) -> str:
+        if self._with_schema_case:
+            current_case = config.get_source_case()
+            result: str = super().define(config.expect_source_case(source=self._schema_case))
+            config.expect_source_case(source=current_case)
+            return result
+        else:
+            return super().define(config)
 
     def construct_next(self, next_indentation: IndentationConfig) -> 'IndentedSchemaWriter':
-        return YamlLikeWriter(indentation=next_indentation)
+        return YamlLikeWriter(indentation=next_indentation, 
+                              with_schema_case=self._with_schema_case,
+                              schema_case=self._schema_case)
 
     def define_list(self, list: ListDefinition) -> str:
         # first, process the list with reset indentation
@@ -38,7 +58,7 @@ class YamlLikeWriter(IndentedSchemaWriter):
             trailing: str = ""
             if child.spec_type != SpecType.Value:
                 trailing = "\n"
-            speclist.append(f"{self.indent()}{key}: {trailing}{child.define(self.next())}")
+            speclist.append(f"{self.indent()}{obj.key_case.translate(key=key)}: {trailing}{child.define(self.next())}")
 
         # join with newlines
         return "\n".join(speclist)
