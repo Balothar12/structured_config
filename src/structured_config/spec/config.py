@@ -386,7 +386,8 @@ class Config:
 
         No type conversion, meaning that the type is used as-is from the config IO layer. However, an excepted type 
         may still be specified to indicate that the config file value should have that type. If a type is specified,
-        it is checked during conversion. Otherwise, any type is allowed.
+        it is checked during conversion. Otherwise, any type is allowed. Type-checking is done before any validators
+        are applied.
 
         Args:
             name (str): key of the value within its composite parent
@@ -394,7 +395,7 @@ class Config:
         """
         return ScalarConfigValue(
             validator=validator,
-            validator_phase=ValidatorPhase.BeforeConversion,
+            validator_phase=ValidatorPhase.AfterConversion,
             converter=NoOpConverter(expected_type=type),
             required=required,
             default=default

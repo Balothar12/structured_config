@@ -1,0 +1,22 @@
+{
+    "person": {
+        "first_name": "Max",
+        "last_name": "Mustermann",
+        "age": 39,
+        "gender": "male"
+    },
+    "addresses": [
+        {
+            "street": "Musterstr.",
+            "number": "12c",
+            "zip": "12345",
+            "city": "Berlin",
+            "occupants": [
+                {
+                    "first_name": "Max",
+                    "last_name": "Mustermann"
+                }
+            ]
+        }
+    ]
+}

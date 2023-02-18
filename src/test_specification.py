@@ -2,6 +2,8 @@
 from structured_config.io.schema.json_like_writer import JsonLikeWriter
 from structured_config.io.schema.yaml_like_writer import YamlLikeWriter
 from structured_config.spec.config import Config, MakeScalarEntry, MakeListEntry, MakeCompositeEntry, MakeRequirements, ListValidator
+from structured_config.io.reader.json_reader import JsonReader
+from structured_config.io.reader.yaml_reader import YamlReader
 
 import json
 
@@ -82,13 +84,27 @@ def run():
         ]
     }
 
-    print(json.dumps(
-        spec.convert(data),
-        indent=2,
-        ensure_ascii=True,
-    ))
+    # print(json.dumps(
+    #     spec.convert(data),
+    #     indent=2,
+    #     ensure_ascii=True,
+    # ))
 
     print(YamlLikeWriter().define(config=spec))
+
+    json_reader: JsonReader = JsonReader("test/person.json")
+    print(json.dumps(
+        spec.convert(json_reader.read()),
+        indent=2,
+        ensure_ascii=True
+    ))
+    
+    yaml_reader: YamlReader = YamlReader("test/person.yaml")
+    print(json.dumps(
+        spec.convert(yaml_reader.read()),
+        indent=2,
+        ensure_ascii=True
+    ))
 
 if __name__ == "__main__":
     run()
