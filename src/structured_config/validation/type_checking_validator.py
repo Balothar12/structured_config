@@ -20,7 +20,7 @@ class TypeCheckingValidator(ValidatorBase):
     Note that for basic (i.e. non-typed, non-complex) scalar types, you can simply specify the
     "type" parameter to perform type checking. While this forces the checks to use "is" and does
     not allow "isinstance", this should not be required in this case since the only data you
-    should expect are str/int/bool, lists, or dictionaries.
+    should expect are str/int/float/bool, lists, or dictionaries.
 
     Args:
         type (Type): expected data type
