@@ -13,7 +13,7 @@ class ValidatorPhase(Enum):
 
 class ValidatorBase:
 
-    def __init__(self, fail_reason: str):
+    def __init__(self, fail_reason: str = "Unknown validation failure"):
         self.fail_reason = fail_reason
 
     def __call__(self, data: ValidatorSourceType) -> ValidatorSourceType:

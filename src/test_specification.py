@@ -18,6 +18,7 @@ import json
 from structured_config.spec.config_value_base import ConfigValueBase
 
 from structured_config.structured_config import ArgparseConfig, ConfigSpecification
+from structured_config.validation.str_format_validator import StrFormatValidator
 
 def run():
     spec = Config.composite(
@@ -202,7 +203,7 @@ def run2():
                         MakeScalarEntry.typed(name="street", type=str),
                         MakeScalarEntry.typed(name="number", type=str),
                         MakeScalarEntry.typed(name="secondary", type=str),
-                        MakeScalarEntry.typed(name="zip", type=str),
+                        MakeScalarEntry.typed(name="zip", type=str, validator=StrFormatValidator(format='[0-9]{5}')),
                         MakeScalarEntry.typed(name="city", type=str),
                         MakeListEntry.basic(
                             name="occupants",
