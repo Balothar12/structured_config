@@ -8,7 +8,7 @@ from enum import Enum
 class SchemaWriterBase:
 
     def define(self, config: ConfigValueBase) -> str:
-        return config.specify().define(self)
+        return config.specify().define(schema_writer=self)
 
     def define_object(self, obj: 'ObjectDefinition') -> str:
         raise NotImplementedError()

@@ -1,5 +1,6 @@
 
 import argparse
+from structured_config.cli_args.schema_output_argument import SchemaOutputArgument, SchemaOutputType
 from structured_config.io.case_translation.pascal_case import PascalCase
 from structured_config.io.overrides.argparse_extractor import ArgparseOverrides
 from structured_config.io.overrides.assignment import Assignment, Override
@@ -14,6 +15,9 @@ from structured_config.io.case_translation.snake_case import SnakeCase
 
 from typing import List
 import json
+from structured_config.spec.config_value_base import ConfigValueBase
+
+from structured_config.structured_config import ArgparseConfig, ConfigSpecification
 
 def run():
     spec = Config.composite(
@@ -171,5 +175,100 @@ def run():
         ensure_ascii=True
     ))
 
+
+def run2():
+
+    config = ConfigSpecification(specification=Config.composite(
+        entries=[
+            MakeCompositeEntry.basic(
+                name="person",
+                entries=[
+                    MakeScalarEntry.typed(name="first_name", type=str),
+                    MakeScalarEntry.typed(name="last_name", type=str),
+                    MakeScalarEntry.typed(name="age", type=int),
+                    MakeScalarEntry.typed(name="gender", type=str),
+                ],
+                requirements=MakeRequirements.required([
+                    "first_name", 
+                    "last_name", 
+                    "age",
+                    "gender"
+                ]),
+            ),
+            MakeListEntry.basic(
+                name="addresses",
+                elements=Config.composite(
+                    entries=[
+                        MakeScalarEntry.typed(name="street", type=str),
+                        MakeScalarEntry.typed(name="number", type=str),
+                        MakeScalarEntry.typed(name="secondary", type=str),
+                        MakeScalarEntry.typed(name="zip", type=str),
+                        MakeScalarEntry.typed(name="city", type=str),
+                        MakeListEntry.basic(
+                            name="occupants",
+                            elements=Config.composite(
+                                entries=[
+                                    MakeScalarEntry.typed(name="first_name", type=str),
+                                    MakeScalarEntry.typed(name="last_name", type=str),
+                                ],
+                                requirements=MakeRequirements.required([
+                                    "first_name",
+                                    "last_name",
+                                ]),
+                            ),
+                        ),
+                    ],
+                    requirements=MakeRequirements.mixed(required=[
+                        "street", 
+                        "number", 
+                        "zip",
+                        "city"
+                    ], defaults={
+                        "secondary": None,
+                    }),
+                ),
+            )
+        ]
+    ).require_target_case(target=SnakeCase())) \
+    .with_argparse_config(arg_config=ArgparseConfig(
+        parser=argparse.ArgumentParser("Config specification test"),
+        auto_setup=True,
+        use_for_overrides=True,
+        schema_options=[
+            SchemaOutputArgument(
+                name="jschema", short_name="s",
+                help="Describe the JSON config schema by printing it to the screen",
+                output_type=SchemaOutputType.Screen,
+                writer=JsonLikeWriter()
+            ),
+            SchemaOutputArgument(
+                name="jschema-out", short_name="so",
+                help="Describe the JSON config schema by writing it to the specified file",
+                output_type=SchemaOutputType.File,
+                writer=JsonLikeWriter()
+            ),
+            SchemaOutputArgument(
+                name="yschema", short_name="s",
+                help="Describe the YAML config schema by printing it to the screen",
+                output_type=SchemaOutputType.Screen,
+                writer=YamlLikeWriter(with_schema_case=True)
+            ),
+            SchemaOutputArgument(
+                name="yschema-out", short_name="so",
+                help="Describe the YAML config schema by writing it to the specified file",
+                output_type=SchemaOutputType.File,
+                writer=YamlLikeWriter(with_schema_case=True)
+            ),
+        ]
+    )) \
+    .get_config()
+
+
+    print(json.dumps(
+        config,
+        indent=2,
+        ensure_ascii=True
+    ))
+
 if __name__ == "__main__":
-    run()
+    run2()

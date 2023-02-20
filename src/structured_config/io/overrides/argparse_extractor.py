@@ -167,6 +167,8 @@ class ArgparseOverrides:
             raise InvalidOverrideSourceTypeException(source_type=type(source), expected_type=argparse.Namespace)
         else:
             list: List[List[str]] = getattr(source, list_name, [])
+            if list == None:
+                list = []
             # we need to make sure each list element is a list with two elements
             if not all([len(l) == 2 for l in list]):
                 raise InvalidOverrideSourceException(reason=f"Argparse list override must be a list with two-element list, each "

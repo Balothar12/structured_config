@@ -58,7 +58,7 @@ class YamlLikeWriter(IndentedSchemaWriter):
             trailing: str = ""
             if child.spec_type != SpecType.Value:
                 trailing = "\n"
-            speclist.append(f"{self.indent()}{obj.key_case.translate(key=key)}: {trailing}{child.define(self.next())}")
+            speclist.append(f"{self.indent()}{self._translate_key(key=key, obj=obj)}: {trailing}{child.define(self.next())}")
 
         # join with newlines
         return "\n".join(speclist)
@@ -77,4 +77,7 @@ class YamlLikeWriter(IndentedSchemaWriter):
             type = value.type.__name__
 
         # construct specification
-        return f"'{type}' value, {requirement}"
+        return f"\"'{type}' value, {requirement}\""
+    
+    def _translate_key(self, key: str, obj: ObjectDefinition):
+        return self._schema_case.translate(key=key) if self._with_schema_case else obj.key_case.translate(key=key)

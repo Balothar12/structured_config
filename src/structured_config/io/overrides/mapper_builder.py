@@ -24,6 +24,8 @@ class MapperExtractorBuilder:
         else:
             self._overrides.append(self._extractor.get_from_source(key=key, source=alternate_source))
             
+        return self
+            
     def only(self, keys: List[str], alternate_source: Any or None = None) -> 'MapperExtractorBuilder':
         """Add only the specified list of overrides to the mapper, optionally from a non-default source"""
 
@@ -31,6 +33,8 @@ class MapperExtractorBuilder:
             self._overrides.extend([self._extractor.get(key=key) for key in keys])
         else:
             self._overrides.extend([self._extractor.get_from_source(key=key, source=alternate_source) for key in keys])
+            
+        return self
 
     def all(self, alternate_source: Any or None = None) -> 'MapperExtractorBuilder':
         """Add all available overrides to the mapper, optionally from a non-default source"""
@@ -40,10 +44,12 @@ class MapperExtractorBuilder:
         else:
             self._overrides.extend(self._extractor.all_available_from_source(source=alternate_source))
 
+        return self
+
     def apply(self) -> 'MapperBuilder':
         """Apply the configuration and return the builder"""
 
-        self._builder._overrides.extend(self._overrides)
+        self._builder.overrides.extend(self._overrides)
         return self._builder
 
 
@@ -52,7 +58,7 @@ class MapperBuilder:
 
     def __init__(self, mapper: 'Mapper'):
         self._mapper: 'Mapper' = mapper
-        self._overrides: List[Override]
+        self.overrides: List[Override] = []
 
     def extract(self, extractor: ExtractorBase) -> MapperExtractorBuilder:
         """Configure an arbitrary extractor"""
@@ -106,6 +112,6 @@ class MapperBuilder:
     
     def apply(self) -> 'Mapper':
         """Apply all configured overrides and return to the mapper"""
-        for override in self._overrides:
+        for override in self.overrides:
             self._mapper.direct(override.key, override.value)
         return self._mapper

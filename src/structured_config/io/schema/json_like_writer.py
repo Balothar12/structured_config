@@ -47,7 +47,7 @@ class JsonLikeWriter(IndentedSchemaWriter):
 
         # get the specification from each child
         speclist: List[str] = [
-            f"{self.indent(offset=1)}\"{obj.key_case.translate(key=key)}\": {child.define(self.next())}"
+            f"{self.indent(offset=1)}\"{self._translate_key(key=key, obj=obj)}\": {child.define(self.next())}"
             for key, child in obj.children.items()
         ]
         specification += ',\n'.join(speclist) + "\n"
@@ -69,4 +69,7 @@ class JsonLikeWriter(IndentedSchemaWriter):
             type = value.type.__name__
 
         # construct specification
-        return f"'{type}' value, {requirement}"
+        return f"\"'{type}' value, {requirement}\""
+    
+    def _translate_key(self, key: str, obj: ObjectDefinition):
+        return self._schema_case.translate(key=key) if self._with_schema_case else obj.key_case.translate(key=key)
