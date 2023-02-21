@@ -250,7 +250,7 @@ class MakeScalarEntry(CompositeEntry):
         return self._get_method_with_fallback(main=composite_type, 
                                               fallback=requirements, 
                                               method="defaults",
-                                              expected_return_type=list)
+                                              expected_return_type=dict)
     
     def _get_method_with_fallback(self, 
                                   main: Any, 
