@@ -7,7 +7,7 @@ from structured_config.io.overrides.assignment import Assignment, Override
 from structured_config.io.overrides.mapper import Mapper
 from structured_config.io.schema.json_like_writer import JsonLikeWriter
 from structured_config.io.schema.yaml_like_writer import YamlLikeWriter
-from structured_config.spec.config import Config, MakeScalarEntry, MakeListEntry, MakeCompositeEntry, MakeRequirements, ListValidator
+from structured_config.spec.config import Config, ScalarEntry, MakeListEntry, MakeCompositeEntry, MakeRequirements, ListValidator
 from structured_config.io.reader.json_reader import JsonReader
 from structured_config.io.reader.yaml_reader import YamlReader
 from structured_config.io.case_translation.snake_case import SnakeCase
@@ -26,10 +26,10 @@ def run():
             MakeCompositeEntry.basic(
                 name="person",
                 entries=[
-                    MakeScalarEntry.typed(name="first_name", type=str),
-                    MakeScalarEntry.typed(name="last_name", type=str),
-                    MakeScalarEntry.typed(name="age", type=int),
-                    MakeScalarEntry.typed(name="gender", type=str),
+                    ScalarEntry.typed(name="first_name", type=str),
+                    ScalarEntry.typed(name="last_name", type=str),
+                    ScalarEntry.typed(name="age", type=int),
+                    ScalarEntry.typed(name="gender", type=str),
                 ],
                 requirements=MakeRequirements.required([
                     "first_name", 
@@ -42,17 +42,17 @@ def run():
                 name="addresses",
                 elements=Config.composite(
                     entries=[
-                        MakeScalarEntry.typed(name="street", type=str),
-                        MakeScalarEntry.typed(name="number", type=str),
-                        MakeScalarEntry.typed(name="secondary", type=str),
-                        MakeScalarEntry.typed(name="zip", type=str),
-                        MakeScalarEntry.typed(name="city", type=str),
+                        ScalarEntry.typed(name="street", type=str),
+                        ScalarEntry.typed(name="number", type=str),
+                        ScalarEntry.typed(name="secondary", type=str),
+                        ScalarEntry.typed(name="zip", type=str),
+                        ScalarEntry.typed(name="city", type=str),
                         MakeListEntry.basic(
                             name="occupants",
                             elements=Config.composite(
                                 entries=[
-                                    MakeScalarEntry.typed(name="first_name", type=str),
-                                    MakeScalarEntry.typed(name="last_name", type=str),
+                                    ScalarEntry.typed(name="first_name", type=str),
+                                    ScalarEntry.typed(name="last_name", type=str),
                                 ],
                                 requirements=MakeRequirements.required([
                                     "first_name",
@@ -184,10 +184,10 @@ def run2():
             MakeCompositeEntry.basic(
                 name="person",
                 entries=[
-                    MakeScalarEntry.typed(name="first_name", type=str),
-                    MakeScalarEntry.typed(name="last_name", type=str),
-                    MakeScalarEntry.typed(name="age", type=int),
-                    MakeScalarEntry.typed(name="gender", type=str),
+                    ScalarEntry.typed(name="first_name", type=str),
+                    ScalarEntry.typed(name="last_name", type=str),
+                    ScalarEntry.typed(name="age", type=int),
+                    ScalarEntry.typed(name="gender", type=str),
                 ],
                 requirements=MakeRequirements.required([
                     "first_name", 
@@ -200,17 +200,17 @@ def run2():
                 name="addresses",
                 elements=Config.composite(
                     entries=[
-                        MakeScalarEntry.typed(name="street", type=str),
-                        MakeScalarEntry.typed(name="number", type=str),
-                        MakeScalarEntry.typed(name="secondary", type=str),
-                        MakeScalarEntry.typed(name="zip", type=str, validator=StrFormatValidator(format='[0-9]{5}')),
-                        MakeScalarEntry.typed(name="city", type=str),
+                        ScalarEntry.typed(name="street", type=str),
+                        ScalarEntry.typed(name="number", type=str),
+                        ScalarEntry.typed(name="secondary", type=str),
+                        ScalarEntry.typed(name="zip", type=str, validator=StrFormatValidator(format='[0-9]{5}')),
+                        ScalarEntry.typed(name="city", type=str),
                         MakeListEntry.basic(
                             name="occupants",
                             elements=Config.composite(
                                 entries=[
-                                    MakeScalarEntry.typed(name="first_name", type=str),
-                                    MakeScalarEntry.typed(name="last_name", type=str),
+                                    ScalarEntry.typed(name="first_name", type=str),
+                                    ScalarEntry.typed(name="last_name", type=str),
                                 ],
                                 requirements=MakeRequirements.required([
                                     "first_name",

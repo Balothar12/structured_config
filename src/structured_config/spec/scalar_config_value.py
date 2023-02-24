@@ -2,6 +2,9 @@
 from structured_config.spec.config_value_base import ConfigValueBase
 from structured_config.io.schema.schema_writer_base import ValueDefinition
 from structured_config.conversion.converter_base import ConverterBase
+from structured_config.type_checking.config_type_checker import ConfigTypeChecker
+from structured_config.type_checking.require_types import RequireConfigType
+from structured_config.type_checking.type_config import ConfigTypeCheckingFunction, ConvertedTypeCheckingFunction, TypeConfig
 from structured_config.validation.validator_base import ValidatorBase, ValidatorPhase
 from structured_config.validation.pass_all_validator import PassAllValidator
 from structured_config.conversion.no_op_converter import NoOpConverter
@@ -32,6 +35,8 @@ class ScalarConfigValue(ConfigValueBase):
     """
 
     def __init__(self,
+                 config_type_check: ConfigTypeCheckingFunction = RequireConfigType.scalar(),
+                 converted_type_check: ConvertedTypeCheckingFunction = TypeConfig.no_converted_checks(),
                  converter: ConverterBase = NoOpConverter(),
                  validator: ValidatorBase = PassAllValidator(),
                  validator_phase: ValidatorPhase = ValidatorPhase.BeforeConversion,
@@ -43,6 +48,8 @@ class ScalarConfigValue(ConfigValueBase):
         self._validator_phase: ValidatorPhase = validator_phase
         self._required: bool = required
         self._default: ConversionTargetType = default
+        self._config_type_check: ConfigTypeCheckingFunction = config_type_check
+        self._converted_type_check: ConvertedTypeCheckingFunction = converted_type_check
 
         # validate the specification
         self._validate_spec()
@@ -67,6 +74,9 @@ class ScalarConfigValue(ConfigValueBase):
                 raise RequiredValueNotFoundException(value_name=self.extend_key(aggregate=parent_key, key=key))
             else:
                 return self._default
+            
+        # check the config type
+        self._config_type_check(key=key, parent_key=parent_key, obj=input, scalar=True)
 
         # do we need to validate before we convert?
         if self._validator_phase == ValidatorPhase.BeforeConversion:
@@ -74,6 +84,9 @@ class ScalarConfigValue(ConfigValueBase):
 
         # perform data conversion
         output: ConversionTargetType = self._converter(input, parent=parent_key, current=key)
+
+        # check converted type
+        self._converted_type_check(key=key, parent_key=parent_key, obj=output)
 
         # do we need to validate after we convert?
         if (self._validator_phase == ValidatorPhase.AfterConversion):

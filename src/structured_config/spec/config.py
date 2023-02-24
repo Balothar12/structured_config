@@ -3,6 +3,9 @@ from structured_config.spec.scalar_config_value import ScalarConfigValue
 from structured_config.spec.composite_config_value import CompositeConfigValue
 from structured_config.spec.list_config_value import ListConfigValue
 from structured_config.spec.config_value_base import ConfigValueBase
+from structured_config.type_checking.converted_type_checker import ConvertedTypeChecker
+from structured_config.type_checking.require_types import RequireConfigType, RequireConvertedType
+from structured_config.type_checking.type_config import ConfigTypeCheckingFunction, ConvertedTypeCheckingFunction, TypeConfig
 from structured_config.validation.pass_all_validator import PassAllValidator
 from structured_config.validation.validator_base import ValidatorBase, ValidatorPhase
 from structured_config.validation.list_validator import ListValidator
@@ -11,7 +14,10 @@ from structured_config.conversion.type_casting_converter import TypeCastingConve
 from structured_config.conversion.converter_base import ConverterBase
 from structured_config.typedefs import ConversionSourceType, ConversionTargetType, ConfigObjectType
 from dataclasses import dataclass
-from typing import List, Tuple, Protocol, get_type_hints, Dict, Any, Type, Callable
+from typing import List, Tuple, Protocol, TypeVar, get_type_hints, Dict, Any, Type, Callable
+
+ScalarConfigTypeRequirements = TypeVar("ScalarConfigTypeRequirements", ConfigTypeCheckingFunction, Type, List[Type], None)
+ScalarConvertedTypeRequirements = TypeVar("ScalarConvertedTypeRequirements", ConfigTypeCheckingFunction, Type, List[Type], None)
 
 class CompositeScalarConfigValueFactory(Protocol):
     def __call__(self, required: bool, default: ConversionTargetType or None) -> ScalarConfigValue: ...
@@ -216,7 +222,7 @@ class MakeListEntry(CompositeEntry):
             requirements=requirements,
         )
     
-class MakeScalarEntry(CompositeEntry):
+class ScalarEntry(CompositeEntry):
     """Create a scalar entry for a composite config value
     """
 
@@ -302,20 +308,27 @@ class MakeScalarEntry(CompositeEntry):
             return None
     
     @staticmethod
-    def basic(name: str,
-              type: Type or None = None,
-              validator: ValidatorBase = PassAllValidator()) -> 'MakeScalarEntry':
+    def make(name: str,
+             validator: ValidatorBase = PassAllValidator(),
+             type: ScalarConfigTypeRequirements = None,) -> 'ScalarEntry':
         """Create a simple scalar entry
 
-        No type conversion, meaning that the type is used as-is from the config IO layer.
+
+        No type conversion, meaning that the type is used as-is from the config IO layer. However, one or more excepted types 
+        may still be specified to indicate that the config file value should have that type. If any type is specified,
+        it is checked during conversion. Otherwise, any type is allowed. Type-checking is done before any validators
+        are applied. Valid "type" parameters include a single required, type a list of required types, or a custom type checking
+        function. It is recommended to use the methods provided by "RequireConfigType", as these cover all supported config types.
+        If you manually specify a type that isn't supported as a config object, without whitelisting it in "TypeConfig", type
+        checking will always fail.
 
         Args:
             name (str): key of the value within its composite parent
             validator (ValidatorBase): optional validator
         """
-        return MakeScalarEntry(
+        return ScalarEntry(
             name=name,
-            create_config_value=lambda required, default: Config.value(
+            create_config_value=lambda required, default: Config.scalar(
                 validator=validator, 
                 required=required, 
                 default=default,
@@ -325,36 +338,45 @@ class MakeScalarEntry(CompositeEntry):
 
     @staticmethod
     def typed(name: str,
-              type: ConversionTargetType,
+              cast_to: ConversionTargetType, 
+              type: ScalarConfigTypeRequirements = None,
               validator: ValidatorBase = PassAllValidator(),
-              validate_when: ValidatorPhase = ValidatorPhase.BeforeConversion) -> 'MakeScalarEntry':
+              validate_when: ValidatorPhase = ValidatorPhase.BeforeConversion,) -> 'ScalarEntry':
         """Create a typed scalar entry
 
-        Type from IO layer is passed directly to the constructor of the specified target type
+        Create a scalar value that is type-casted to the type specified in "cast_to". The "type" parameter may be used 
+        to specify one or more optional required config types that are checked before any validators. The remaining parameters
+        are the same as with the untyped scalar, with and added a validation phase parameter that indicates when validation
+        should be performed (i.e. before or after type checking). The casted type is checked again after conversion to
+        ensure that the returned type matches what is specified above.
         
         Args:
             name (str): key of the value within its composite parent
-            type (ConversionTargetType): value target type
+            cast_to (ConversionTargetType): value target type
+            type (ScalarConfigTypeRequirements): expected config object type, optional
             validator (ValidatorBase): optional validator
             validate_when (ValidatorPhase): specify if the validation should happen before or after conversion
         """
-        return MakeScalarEntry(
+        return ScalarEntry(
             name=name,
-            create_config_value=lambda required, default: Config.typed_value(
+            create_config_value=lambda required, default: Config.typed_scalar(
                 type=type,
                 validator=validator, 
                 validate_when=validate_when, 
                 required=required, 
-                default=default
+                default=default,
+                cast_to=cast_to,
             )
         )
     
+    # TODO fix type checking
+    
     @staticmethod
-    def complex(name: str,
+    def custom(name: str,
                 converter: ConverterBase,
                 validator: ValidatorBase = PassAllValidator(),
-                validate_when: ValidatorPhase = ValidatorPhase.BeforeConversion) -> 'MakeScalarEntry':
-        """Create a complex typed scalar entry
+                validate_when: ValidatorPhase = ValidatorPhase.BeforeConversion) -> 'ScalarEntry':
+        """Create a customized scalar entry
 
         Here a custom conversion operator may be specified. This converter will be called with the IO-layer value.
         
@@ -364,7 +386,7 @@ class MakeScalarEntry(CompositeEntry):
             validator (ValidatorBase): optional validator
             validate_when (ValidatorPhase): specify if the validation should happen before or after conversion
         """
-        return MakeScalarEntry(
+        return ScalarEntry(
             name=name,
             create_config_value=lambda required, default: Config.complex_value(
                 converter=converter,
@@ -378,75 +400,117 @@ class MakeScalarEntry(CompositeEntry):
 class Config:
 
     @staticmethod
-    def value(validator: ValidatorBase = PassAllValidator(),
-              type: Type or None = None,
-              required: bool = True,
-              default: ConfigObjectType or None = None) -> ScalarConfigValue:
+    def _make_scalar_type_checking_function(expected_types: ScalarConfigTypeRequirements or ScalarConvertedTypeRequirements, 
+                                            default: ConfigTypeCheckingFunction) -> ConfigTypeCheckingFunction:
+        if type(expected_types) is list:
+            return RequireConfigType.from_type_list(types=expected_types)
+        elif callable(expected_types):
+            return expected_types  
+        elif expected_types:
+            return RequireConfigType.from_type_list(types=[expected_types])
+        else:
+            return default
+
+    @classmethod
+    def scalar(cls,
+               validator: ValidatorBase = PassAllValidator(),
+               type: ScalarConfigTypeRequirements = None,
+               required: bool = True,
+               default: ConfigObjectType or None = None) -> ScalarConfigValue:
         """Create a simple scalar value
 
-        No type conversion, meaning that the type is used as-is from the config IO layer. However, an excepted type 
-        may still be specified to indicate that the config file value should have that type. If a type is specified,
+        No type conversion, meaning that the type is used as-is from the config IO layer. However, one or more excepted types 
+        may still be specified to indicate that the config file value should have that type. If any type is specified,
         it is checked during conversion. Otherwise, any type is allowed. Type-checking is done before any validators
-        are applied.
+        are applied. Valid "type" parameters include a single required, type a list of required types, or a custom type checking
+        function. It is recommended to use the methods provided by "RequireConfigType", as these cover all supported config types.
+        If you manually specify a type that isn't supported as a config object, without whitelisting it in "TypeConfig", type
+        checking will always fail.
 
         Args:
-            name (str): key of the value within its composite parent
             validator (ValidatorBase): optional validator
+            type (ConfigTypeCheckingFunction or List[type] or None)
         """
         return ScalarConfigValue(
             validator=validator,
             validator_phase=ValidatorPhase.AfterConversion,
-            converter=NoOpConverter(expected_type=type),
+            converter=NoOpConverter(),
             required=required,
-            default=default
+            default=default,
+            config_type_check=cls._make_scalar_type_checking_function(expected_types=type, default=RequireConfigType.scalar())
         )
 
-    @staticmethod
-    def typed_value(type: ConversionTargetType, 
-                    validator: ValidatorBase = PassAllValidator(),
-                    validate_when: ValidatorPhase = ValidatorPhase.BeforeConversion,
-                    required: bool = True,
-                    default: ConversionTargetType or None = None) -> ScalarConfigValue:
+    @classmethod
+    def typed_scalar(cls,
+                     cast_to: ConversionTargetType, 
+                     type: ScalarConfigTypeRequirements = None,
+                     validator: ValidatorBase = PassAllValidator(),
+                     validate_when: ValidatorPhase = ValidatorPhase.BeforeConversion,
+                     required: bool = True,
+                     default: ConversionTargetType or None = None) -> ScalarConfigValue:
         """Create a typed scalar value
 
-        Type from IO layer is passed directly to the constructor of the specified target type
+        Create a scalar value that is type-casted to the type specified in "cast_to". The "type" parameter may be used 
+        to specify one or more optional required config types that are checked before any validators. The remaining parameters
+        are the same as with the untyped scalar, with and added a validation phase parameter that indicates when validation
+        should be performed (i.e. before or after type checking). The casted type is checked again after conversion to
+        ensure that the returned type matches what is specified above.
         
         Args:
-            name (str): key of the value within its composite parent
-            type (ConversionTargetType): value target type
+            cast_to (ConversionTargetType): value target type
+            type (ScalarConfigTypeRequirements): expected config object type, optional
             validator (ValidatorBase): optional validator
             validate_when (ValidatorPhase): specify if the validation should happen before or after conversion
+            required (bool): is the value required, defaults to "True"
+            default (ConversionTargetType or None): optional default value, only applicable if "required" is "False"
         """
         return ScalarConfigValue(
             validator=validator,
             validator_phase=validate_when,
-            converter=TypeCastingConverter(to=type),
+            converter=TypeCastingConverter(to=cast_to),
             required=required,
-            default=default
+            default=default,
+            config_type_check=type or RequireConfigType.scalar(),
+            converted_type_check=cls._make_scalar_type_checking_function(expected_types=type, default=RequireConfigType.scalar())
         )
     
-    @staticmethod
-    def complex_value(converter: ConverterBase,
+    @classmethod
+    def custom_scalar(cls,
+                      converter: ConverterBase,
                       validator: ValidatorBase = PassAllValidator(),
                       validate_when: ValidatorPhase = ValidatorPhase.BeforeConversion,
+                      type: ScalarConfigTypeRequirements = None,
+                      converted_type: ScalarConvertedTypeRequirements = None,
                       required: bool = True,
                       default: ConversionTargetType or None = None) -> ScalarConfigValue:
-        """Create a complex typed scalar value
+        """Create a customized scalar value
 
-        Here a custom conversion operator may be specified. This converter will be called with the IO-layer value.
+        Here a custom conversion operator may be specified. This converter will be called with the config object value. If you
+        want to validate the converted type before returning it, register one or more types using the converted_type parameter.
         
         Args:
-            name (str): key of the value within its composite parent
             converter (ConverterBase): value converter
+            type (ScalarConfigTypeRequirements): expected config object type, optional
+            converted_type (ScalarConvertedTypeRequirements): expected converted type, optional
             validator (ValidatorBase): optional validator
             validate_when (ValidatorPhase): specify if the validation should happen before or after conversion
+            required (bool): is the value required, defaults to "True"
+            default (ConversionTargetType or None): optional default value, only applicable if "required" is "False"
         """
         return ScalarConfigValue(
             validator=validator,
             validator_phase=validate_when,
             converter=converter,
             required=required,
-            default=default
+            default=default,
+            config_type_check=cls._make_scalar_type_checking_function(
+                expected_types=type, 
+                default=RequireConfigType.scalar(),
+            ),
+            converted_type_check=cls._make_scalar_type_checking_function(
+                expected_types=converted_type, 
+                default=RequireConvertedType.none(),
+            ),
         )
     
     

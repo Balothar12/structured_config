@@ -4,6 +4,8 @@ from structured_config.spec.config_value_base import ConfigValueBase
 from structured_config.io.schema.schema_writer_base import ObjectDefinition
 from structured_config.spec.list_config_value import ListConfigValue
 from structured_config.conversion.converter_base import ConverterBase
+from structured_config.type_checking.require_types import RequireConfigType
+from structured_config.type_checking.type_config import ConfigTypeCheckingFunction, ConvertedTypeCheckingFunction, TypeConfig
 from structured_config.validation.pass_all_validator import PassAllValidator
 from structured_config.conversion.no_op_converter import NoOpConverter
 from structured_config.typedefs import ConfigObjectType, ConversionTargetType
@@ -32,7 +34,11 @@ class CompositeConfigValue(ConfigValueBase):
 
     def __init__(self,
                  expected_children: Dict[str, ConfigValueBase],
+                 config_type_check: ConfigTypeCheckingFunction = RequireConfigType.object(),
+                 converted_type_check: ConvertedTypeCheckingFunction = TypeConfig.no_converted_checks(),
                  converter: ConverterBase = NoOpConverter()):
+        self._config_type_check: ConfigTypeCheckingFunction = config_type_check
+        self._converted_type_check: ConvertedTypeCheckingFunction = converted_type_check
         self._children: Dict[str, ConfigValueBase] = expected_children
         self._converter: ConverterBase = converter
 
@@ -61,17 +67,20 @@ class CompositeConfigValue(ConfigValueBase):
                 ]
             )
 
-        # the config input must be a dictionary if it isn't "None"
-        elif type(input) is not dict:
-            raise InvalidChildTypeException(
-                child_type=type(input), 
-                expected_type=Dict[str, ConfigObjectType],
-                child_key=key,
-                parent_key=parent_key
-            )
+        # # the config input must be a dictionary if it isn't "None"
+        # elif type(input) is not dict:
+        #     raise InvalidChildTypeException(
+        #         child_type=type(input), 
+        #         expected_type=Dict[str, ConfigObjectType],
+        #         child_key=key,
+        #         parent_key=parent_key
+        #     )
 
         # config input is a non-null dictionary, so we can try and convert it
         else:
+            # validate config type
+            self._config_type_check(key=key, parent_key=parent_key, obj=input, scalar=False)
+
             values = dict(
                 [
                     self._convert_one(
@@ -88,7 +97,12 @@ class CompositeConfigValue(ConfigValueBase):
             )
 
         # finally, we apply the conversion to the value dictionary
-        return self._converter(other=values, parent=parent_key, current=key)
+        output = self._converter(other=values, parent=parent_key, current=key)
+
+        # check converted type
+        self._converted_type_check(key=key, parent_key=parent_key, obj=output)
+
+        return output
 
     def _convert_one(self, 
                      value: ConfigValueBase, 
