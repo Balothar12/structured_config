@@ -9,7 +9,8 @@ from structured_config.type_checking.type_config import ConfigTypeCheckingFuncti
 from structured_config.typedefs import ConfigObjectType, ConversionTargetType
 from structured_config.spec.invalid_child_type_exception import InvalidChildTypeException
 from structured_config.validation.list_validator import ListValidator
-from typing import List, Tuple
+from structured_config.spec.required_value_not_found_exception import RequiredValueNotFoundException
+from typing import List, Tuple, Any
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -30,12 +31,16 @@ class ListConfigValue(ConfigValueBase):
                  config_type_check: ConfigTypeCheckingFunction = RequireConfigType.list(),
                  converted_type_check: ConvertedTypeCheckingFunction = TypeConfig.no_converted_checks(),
                  list_requirements: ListValidator = ListValidator(),
-                 converter: ConverterBase = NoOpConverter()):
+                 converter: ConverterBase = NoOpConverter(),
+                 required: bool = True,
+                 default: ConversionTargetType or None = None):
         self._config_type_check: ConfigTypeCheckingFunction = config_type_check
         self._converted_type_check: ConvertedTypeCheckingFunction = converted_type_check
         self._child_definition: ConfigValueBase = child_definition
         self._requirements: ListValidator = list_requirements
         self._list_converter: ConverterBase = converter
+        self._required = required
+        self._default = default
 
     def specify(self) -> 'DefinitionBase':
         return ListDefinition(
@@ -54,9 +59,14 @@ class ListConfigValue(ConfigValueBase):
         this_key: str = self.extend_key(aggregate=parent_key, key=key)
         values: List[ConversionTargetType] = {}
 
-        # check for "None": we return an empty list if the list element itself does not exist
+        # check for "None"
         if input == None:
-            values = []
+            # raise an exception if a required list is not specified at all
+            if self._required:
+                raise RequiredValueNotFoundException(value_name=f"'{key}' under '{parent_key}'")
+            # otherwise we return the default value
+            else:
+                return self._default
 
             
         # # validate the config type
