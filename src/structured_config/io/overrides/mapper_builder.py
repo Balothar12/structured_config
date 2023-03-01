@@ -1,5 +1,6 @@
 
 import argparse
+import itertools
 from typing import TYPE_CHECKING, Any, Dict, List
 from structured_config.io.overrides.argparse_extractor import ArgparseOverrideKeyMappingFunction, ArgparseOverrides, DictionaryKeyFilterFunction
 from structured_config.io.overrides.assignment import Override
@@ -20,9 +21,9 @@ class MapperExtractorBuilder:
         """Add only one override to the mapper, optionally from a non-default source"""
 
         if alternate_source == None:
-            self._overrides.append(self._extractor.get(key=key))
+            self._overrides.extend(self._extractor.get(key=key))
         else:
-            self._overrides.append(self._extractor.get_from_source(key=key, source=alternate_source))
+            self._overrides.extend(self._extractor.get_from_source(key=key, source=alternate_source))
             
         return self
             
@@ -30,9 +31,12 @@ class MapperExtractorBuilder:
         """Add only the specified list of overrides to the mapper, optionally from a non-default source"""
 
         if alternate_source == None:
-            self._overrides.extend([self._extractor.get(key=key) for key in keys])
+            self._overrides.extend(list(itertools.chain.from_iterable([self._extractor.get(key=key) for key in keys])))
         else:
-            self._overrides.extend([self._extractor.get_from_source(key=key, source=alternate_source) for key in keys])
+            self._overrides.extend(list(itertools.chain.from_iterable([self._extractor.get_from_source(
+                key=key, 
+                source=alternate_source,
+            ) for key in keys])))
             
         return self
 

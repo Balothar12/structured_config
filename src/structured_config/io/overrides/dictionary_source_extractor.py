@@ -1,5 +1,6 @@
 
 from typing import Any, Dict, List, Protocol, Tuple
+from structured_config.io.overrides.dictionary_node_classifier import DictionaryNodeClassification, DictionaryNodeClassifier
 from structured_config.io.overrides.functional_extractor import SourceConvertingFunctionalExtractor, StringKeyMappingFunction
 
 class DictionaryKeyExtractorFunction(Protocol):
@@ -27,26 +28,52 @@ class DictionarySourceExtractor(SourceConvertingFunctionalExtractor):
 
     def __init__(self, 
                  mapping: StringKeyMappingFunction, 
-                 data: Dict[str, Any] or List[Any]):
+                 data: Dict[str, Any] or List[Any],
+                 multidict: bool = False):
+        self._node_classifier: DictionaryNodeClassifier = DictionaryNodeClassifier()
+        self._multidict: bool = multidict
         super().__init__(lambda source: [k for k in list(source.keys())], self._flatten, mapping, data)
 
     def _flatten(self, source: Any) -> Any:
         return dict(self._key_value_pairs(current=source, keys=[]))
     
-    def _key_value_pairs(self, current: Dict[str, Any] or List[str], keys: List[str]) -> List[Tuple[str, Any]]:
+    def _key_value_pairs(self, current: Dict[str, Any] or List[str] or Any, keys: List[str]) -> List[Tuple[str, Any]]:
         pairs: List[Tuple[str, Any]] = []
 
-        if type(current) is dict:
+        # classify the curren node
+        combined_key: str = ".".join(keys)
+        classification: DictionaryNodeClassification = self._node_classifier.classify(
+            value=value, 
+            location=combined_key,
+            multidict=self._multidict,
+        )
+
+        # collect key-value-pairs accordingly
+        if classification == DictionaryNodeClassification.Tree:
             for key, value in current.items():
                 pairs.extend(self._key_value_pairs(current=value, keys=keys + [key]))
-        if type(current) is list:
+        elif classification == DictionaryNodeClassification.List:
             for i, value in enumerate(current):
                 pairs.extend(self._key_value_pairs(current=value, keys=keys + [f"[{i}]"]))
         else:
             pairs.extend([(".".join(keys), current)])
         
+        # return all pairs wwith valid keys
         return list(filter(lambda p: len(p[0]) > 1, pairs))
     
     @staticmethod
     def direct(data: Dict[str, Any] or List[Any]):
-        return DictionarySourceExtractor(mapping=lambda k, s: s[k], data=data)
+        return DictionarySourceExtractor(
+            mapping=lambda k, s: [s[k]], 
+            data=data, 
+            multidict=False,
+        )
+    
+    @staticmethod
+    def direct_multi(data: Dict[str, Any] or List[Any]):
+        return DictionarySourceExtractor(
+            mapping=lambda k, s: s[k] if type(s[k]) is list else [s[k]],
+            data=data,
+            multidict=True,
+        )
+    

@@ -6,7 +6,7 @@ from structured_config.io.overrides.extractor_base import ExtractorBase
 
 class StringKeyMappingFunction(Protocol):
     
-    def __call__(self, str_key: str, any_source: Any, *payload) -> Override: ...
+    def __call__(self, str_key: str, any_source: Any, *payload) -> List[Override]: ...
 
 class SourceConverterFunction(Protocol):
 
@@ -45,11 +45,11 @@ class FunctionalExtractor(ExtractorBase):
         if type(key) is not str:
             raise InvalidOverrideKeyTypeException(key=key, type=type(key), expected=str)
 
-    def get(self, key: Any) -> Override:
+    def get(self, key: Any) -> List[Override]:
         self._check_key_type(key=key)
         return self._mapping(str(key), *self._payload)
     
-    def get_from_source(self, key: Any, source: Any) -> Override:
+    def get_from_source(self, key: Any, source: Any) -> List[Override]:
         self._check_key_type(key=key)
         return self._mapping(str(key), source, *self._payload)
     
@@ -88,7 +88,7 @@ class SourceConvertingFunctionalExtractor(FunctionalExtractor):
             converted_payload = (self._converter(source=converted_payload[0]), *converted_payload[1:])
         super().__init__(keys, mapping, *converted_payload)
 
-    def get_from_source(self, key: Any, source: Any) -> Override:
+    def get_from_source(self, key: Any, source: Any) -> List[Override]:
         self._check_key_type(key=key)
         return self._mapping(str(key), self._converter(source=source), *self._payload)
     

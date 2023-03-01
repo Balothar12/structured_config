@@ -1,4 +1,5 @@
 
+import itertools
 from typing import Any, List
 
 from structured_config.io.overrides.assignment import Override
@@ -31,16 +32,16 @@ class ExtractorBase:
         """
         raise NotImplementedError()
 
-    def get(self, key: Any) -> Override:
-        """Get an override for a specified (available) key from the default source
+    def get(self, key: Any) -> List[Override]:
+        """Get overrides for a specified (available) key from the default source
         
         Args:
             key (Any): the requested key, must be available
         """
         raise NotImplementedError()
     
-    def get_from_source(self, key: Any, source: Any) -> Override:
-        """Get an override for a specified (available) key from an alternate source
+    def get_from_source(self, key: Any, source: Any) -> List[Override]:
+        """Get overrides for a specified (available) key from an alternate source
         
         Args:
             key (Any): the requested key, must be available
@@ -50,9 +51,9 @@ class ExtractorBase:
     
     def all_available(self) -> List[Override]:
         """Get all available overrides for the default source"""
-        return [
+        return list(itertools.chain.from_iterable([
            self.get(key=key) for key in self.available_keys()
-        ]
+        ]))
     
     def all_available_from_source(self, source: Any) -> List[Override]:
         """Get all available overrides for an alternate source
@@ -60,6 +61,6 @@ class ExtractorBase:
         Args:
             source (Any): the alternate source
         """
-        return [
+        return list(itertools.chain.from_iterable([
             self.get_from_source(key=key, source=source) for key in self.available_keys_for_source(source=None)
-        ]
+        ]))

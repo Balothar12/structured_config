@@ -43,16 +43,27 @@ class _ArgparseExtractor(DictionarySourceExtractor):
                  key_filter: DictionaryKeyFilterFunction or None = None):
         self._map_keys: ArgparseOverrideKeyMappingFunction = key_mapping
         self._namespace_converter: _NamespaceToDictionary = _NamespaceToDictionary(key_filter=key_filter)
-        super().__init__(mapping=self._get_override, 
-                         data=self._namespace_converter(arguments))
+        super().__init__(mapping=self._get_overrides, 
+                         data=self._namespace_converter(arguments),
+                         multidict=True,
+                        )
 
-    def _get_override(self, key: str, any_source: Any) -> Override:
+    def _get_overrides(self, key: str, any_source: Any) -> List[Override]:
         source_key: str = key
         override_key: str = self._map_keys(key=key)
-        return Override(
-            key=override_key,
-            value=any_source[source_key]
-        )
+
+        if type(any_source[source_key]) is list:
+            return [
+                Override(
+                    key=override_key,
+                    value=value,
+                ) for value in any_source[source_key]
+            ]
+        else:
+            return [Override(
+                key=override_key,
+                value=any_source[source_key]
+            )]
 
 class ArgparseOverrides:
     """Factory functions to create argparse-compatible override extractors"""
@@ -147,10 +158,10 @@ class ArgparseOverrides:
             arguments (argparse.Namespace or None): default data source
         """
         return SourceConvertingFunctionalExtractor(
-            lambda source: list(source.keys()),
-            cls._arguments_to_override_list_converter(list_name=list_name), 
-            lambda str_key, any_source: Override(key=str_key, value=any_source[str_key]),
-            arguments,
+            keys=lambda source: list(source.keys()),
+            source_converter=cls._arguments_to_override_list_converter(list_name=list_name), 
+            mapping=lambda str_key, any_source: [Override(key=str_key, value=value) for value in any_source[str_key]],
+            source=arguments,
         )
 
     @classmethod
@@ -173,5 +184,14 @@ class ArgparseOverrides:
             if not all([len(l) == 2 for l in list]):
                 raise InvalidOverrideSourceException(reason=f"Argparse list override must be a list with two-element list, each "
                                                             f"containing the override key and value")
-            return {l[0]: l[1] for l in list}
+            
+            keys_and_values: List[Tuple] = [(l[0], l[1]) for l in list]
+            multidict: Dict[str, List[Any]] = {}
+            for k, v in keys_and_values:
+                if k in multidict:
+                    multidict[k].append(v)
+                else:
+                    multidict[k] = [v]
+            
+            return multidict
 
