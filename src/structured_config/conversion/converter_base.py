@@ -1,7 +1,7 @@
 
+from typing import Any, Type
 from structured_config.typedefs import ConversionSourceType, ConversionTargetType
 from structured_config.conversion.conversion_type_exception import ConversionTypeException
-from structured_config.conversion.invalid_object_type_exception import InvalidObjectTypeException
 
 class ConverterBase:
 
@@ -10,17 +10,13 @@ class ConverterBase:
             self.current: str = current
             self.parent: str = parent
             return self.convert(other=other)
-        except Exception as error:
-            if isinstance(error, ConversionTypeException) or isinstance(error, InvalidObjectTypeException):
-                raise error
-            else:
-                raise ConversionTypeException(type(other), self.type(), parent=parent, current=current)
+        except ConversionTypeException as error:
+            raise error
+        except:
+            raise ConversionTypeException(type(other), None, parent=parent, current=current)
         
-    def typename(self) -> str:
-        raise NotImplementedError()
-    
-    def type(self) -> ConversionTargetType:
-        raise NotImplementedError()
+    def expected_type(self) -> ConversionTargetType or None:
+        return None
 
     def convert(self, other: ConversionSourceType) -> ConversionTargetType:
         raise NotImplementedError()
