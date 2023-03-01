@@ -20,7 +20,7 @@ class ListConfigValue(ConfigValueBase):
     """List config value
     
     A list config value is a list of values that each follow one specific config value definition. This
-    definition may be a scalar, a list, or a composite. By default, there are no requirements on list 
+    definition may be a scalar, a list, or an object. By default, there are no requirements on list 
     length, and if the list element itself is not defined in the config, an empty list is returned instead.
     This behavior can be changed by specifying a ListValidator as list_requirements. If necessary, the entire list 
     can also be converted to another type using a converter, although this doesn't happen by default.

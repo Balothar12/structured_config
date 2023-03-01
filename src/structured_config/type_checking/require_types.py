@@ -5,6 +5,8 @@ from structured_config.type_checking.type_config import ConfigTypeCheckingFuncti
 
 from typing import Any, Dict, List, Type, TypeVar
 
+from structured_config.typedefs import ScalarConfigTypeRequirements, ScalarConvertedTypeRequirements
+
 class RequireConfigType:
 
     @staticmethod
@@ -41,6 +43,18 @@ class RequireConfigType:
     def from_type_list(types: List[Type]) -> ConfigTypeCheckingFunction:
         return ConfigTypeChecker(allow_instance_of=False, specific_types=types)
     
+    @staticmethod
+    def make_type_checking_function(expected_types: ScalarConfigTypeRequirements, 
+                                    default: ConfigTypeCheckingFunction) -> ConfigTypeCheckingFunction:
+        if type(expected_types) is list:
+            return RequireConfigType.from_type_list(types=expected_types)
+        elif callable(expected_types):
+            return expected_types  
+        elif expected_types:
+            return RequireConfigType.from_type_list(types=[expected_types])
+        else:
+            return default
+    
 class RequireConvertedType:
 
     @staticmethod
@@ -50,3 +64,15 @@ class RequireConvertedType:
     @staticmethod
     def from_type_list(types: List[Type]) -> ConvertedTypeCheckingFunction:
         return ConvertedTypeChecker(allow_instance_of=False, any_of=types)
+
+    @staticmethod
+    def make_type_checking_function(expected_types: ScalarConvertedTypeRequirements, 
+                                    default: ConvertedTypeCheckingFunction) -> ConvertedTypeCheckingFunction:
+        if type(expected_types) is list:
+            return RequireConvertedType.from_type_list(types=expected_types)
+        elif callable(expected_types):
+            return expected_types  
+        elif expected_types:
+            return RequireConvertedType.from_type_list(types=[expected_types])
+        else:
+            return default

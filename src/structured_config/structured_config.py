@@ -201,7 +201,7 @@ class ConfigSpecification:
         return self.specification.convert(input=self._prepare_config())
         
     def _prepare_config(self) -> ConfigObjectType:
-        # initialize data object
+        # initialize datan object
         data: ConfigObjectType = None
         file: str = None
         if self.arg_config:

@@ -16,20 +16,20 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from structured_config.io.schema.schema_writer_base import DefinitionBase
 
-class CompositeConfigValue(ConfigValueBase):
-    """Composite config value class
+class ObjectConfigValue(ConfigValueBase):
+    """Object config value class
     
-    A composite config value is made up of several children, identified by keys.
-    Each child may be another composite value, a scalar value, or a list of values.
+    An object config value is made up of several children, identified by keys.
+    Each child may be another object value, a scalar value, or a list of values.
     Conversion and validation is applied on a child-value level. An additional 
     conversion operation can be applied to the collection of all children, which is
     a dictionary of keys to converted child types. If no converter is specified, the 
-    composite value will simply be that dictionary. A composite value is considered 
+    object value will simply be that dictionary. An object value is considered 
     optional if it has no required children.
 
     Args:
         expected_children (Dict[str, ConfigValueBase]): child key-value definitions
-        converter (ConverterBase): optional converter for the entire composite value
+        converter (ConverterBase): optional converter for the entire object value
     """
 
     def __init__(self,

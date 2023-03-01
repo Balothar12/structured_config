@@ -7,7 +7,6 @@ from structured_config.io.overrides.assignment import Assignment, Override
 from structured_config.io.overrides.mapper import Mapper
 from structured_config.io.schema.json_like_writer import JsonLikeWriter
 from structured_config.io.schema.yaml_like_writer import YamlLikeWriter
-from structured_config.spec.config import Config, ScalarEntry, MakeListEntry, MakeCompositeEntry, MakeRequirements, ListValidator
 from structured_config.io.reader.json_reader import JsonReader
 from structured_config.io.reader.yaml_reader import YamlReader
 from structured_config.io.case_translation.snake_case import SnakeCase
@@ -15,7 +14,12 @@ from structured_config.io.case_translation.snake_case import SnakeCase
 
 from typing import List
 import json
+from structured_config.spec.config import Config
 from structured_config.spec.config_value_base import ConfigValueBase
+from structured_config.spec.entries.list_entry import ListEntry
+from structured_config.spec.entries.object_entry import ObjectEntry
+from structured_config.spec.entries.object_requirements import MakeRequirements
+from structured_config.spec.entries.scalar_entry import ScalarEntry
 
 from structured_config.structured_config import ArgparseConfig, ConfigSpecification
 from structured_config.validation.str_format_validator import StrFormatValidator
@@ -23,9 +27,9 @@ from structured_config.validation.str_format_validator import StrFormatValidator
 from structured_config.type_checking.require_types import RequireConfigType, RequireConvertedType
 
 def run():
-    spec = Config.composite(
+    spec = Config.object(
         entries=[
-            MakeCompositeEntry.basic(
+            ObjectEntry.make(
                 name="person",
                 entries=[
                     ScalarEntry.typed(name="first_name", type=str),
@@ -40,21 +44,21 @@ def run():
                     "gender"
                 ]),
             ),
-            MakeListEntry.basic(
+            ListEntry.make(
                 name="addresses",
-                elements=Config.composite(
+                elements=Config.object(
                     entries=[
-                        ScalarEntry.typed(name="street", type=str),
-                        ScalarEntry.typed(name="number", type=str),
-                        ScalarEntry.typed(name="secondary", type=str),
-                        ScalarEntry.typed(name="zip", type=str),
-                        ScalarEntry.typed(name="city", type=str),
-                        MakeListEntry.basic(
+                        ScalarEntry.typed(name="street", type=str, cast_to=str),
+                        ScalarEntry.typed(name="number", type=str, cast_to=str),
+                        ScalarEntry.typed(name="secondary", type=str, cast_to=str),
+                        ScalarEntry.typed(name="zip", type=str, cast_to=str),
+                        ScalarEntry.typed(name="city", type=str, cast_to=str),
+                        ListEntry.make(
                             name="occupants",
-                            elements=Config.composite(
+                            elements=Config.object(
                                 entries=[
-                                    ScalarEntry.typed(name="first_name", type=str),
-                                    ScalarEntry.typed(name="last_name", type=str),
+                                    ScalarEntry.typed(name="first_name", type=str, cast_to=str),
+                                    ScalarEntry.typed(name="last_name", type=str, cast_to=str),
                                 ],
                                 requirements=MakeRequirements.required([
                                     "first_name",
@@ -181,9 +185,9 @@ def run():
 
 def run2():
 
-    config = ConfigSpecification(specification=Config.composite(
+    config = ConfigSpecification(specification=Config.object(
         entries=[
-            MakeCompositeEntry.make(
+            ObjectEntry.make(
                 name="person",
                 entries=[
                     ScalarEntry.typed(name="first_name", cast_to=str),
@@ -198,18 +202,18 @@ def run2():
                     "gender"
                 ]),
             ),
-            MakeListEntry.make(
+            ListEntry.make(
                 name="addresses",
-                elements=Config.composite(
+                elements=Config.object(
                     entries=[
                         ScalarEntry.typed(name="street", cast_to=str),
                         ScalarEntry.typed(name="number", cast_to=str),
                         ScalarEntry.typed(name="secondary", cast_to=str),
                         ScalarEntry.typed(name="zip", cast_to=str, type=RequireConfigType.string(), validator=StrFormatValidator(format='[0-9]{5}')),
                         ScalarEntry.typed(name="city", cast_to=str),
-                        MakeListEntry.make(
+                        ListEntry.make(
                             name="occupants",
-                            elements=Config.composite(
+                            elements=Config.object(
                                 entries=[
                                     ScalarEntry.typed(name="first_name", cast_to=str),
                                     ScalarEntry.typed(name="last_name", cast_to=str),

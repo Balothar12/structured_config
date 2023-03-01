@@ -52,7 +52,7 @@ class JsonLikeWriter(IndentedSchemaWriter):
         ]
         specification += ',\n'.join(speclist) + "\n"
             
-        # close the composite specification
+        # close the object specification
         return f"{specification}{self.indent()}}}"
 
     
