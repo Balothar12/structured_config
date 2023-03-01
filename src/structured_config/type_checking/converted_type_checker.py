@@ -5,7 +5,7 @@ from typing import Any, List, Type
 class ConvertedTypeChecker:
 
     def __init__(self, any_of: List[Type], allow_instance_of: bool):
-        self._any_of: Type = any_of
+        self._any_of: List[Type] = any_of
         self._instance_of: bool = allow_instance_of
 
     def __call__(self, key: str, parent_key: str, obj: Any):

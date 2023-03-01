@@ -20,6 +20,8 @@ from structured_config.spec.config_value_base import ConfigValueBase
 from structured_config.structured_config import ArgparseConfig, ConfigSpecification
 from structured_config.validation.str_format_validator import StrFormatValidator
 
+from structured_config.type_checking.require_types import RequireConfigType, RequireConvertedType
+
 def run():
     spec = Config.composite(
         entries=[
@@ -181,13 +183,13 @@ def run2():
 
     config = ConfigSpecification(specification=Config.composite(
         entries=[
-            MakeCompositeEntry.basic(
+            MakeCompositeEntry.make(
                 name="person",
                 entries=[
-                    ScalarEntry.typed(name="first_name", type=str),
-                    ScalarEntry.typed(name="last_name", type=str),
-                    ScalarEntry.typed(name="age", type=int),
-                    ScalarEntry.typed(name="gender", type=str),
+                    ScalarEntry.typed(name="first_name", cast_to=str),
+                    ScalarEntry.typed(name="last_name", cast_to=str),
+                    ScalarEntry.typed(name="age", cast_to=int),
+                    ScalarEntry.typed(name="gender", cast_to=str),
                 ],
                 requirements=MakeRequirements.required([
                     "first_name", 
@@ -196,21 +198,21 @@ def run2():
                     "gender"
                 ]),
             ),
-            MakeListEntry.basic(
+            MakeListEntry.make(
                 name="addresses",
                 elements=Config.composite(
                     entries=[
-                        ScalarEntry.typed(name="street", type=str),
-                        ScalarEntry.typed(name="number", type=str),
-                        ScalarEntry.typed(name="secondary", type=str),
-                        ScalarEntry.typed(name="zip", type=str, validator=StrFormatValidator(format='[0-9]{5}')),
-                        ScalarEntry.typed(name="city", type=str),
-                        MakeListEntry.basic(
+                        ScalarEntry.typed(name="street", cast_to=str),
+                        ScalarEntry.typed(name="number", cast_to=str),
+                        ScalarEntry.typed(name="secondary", cast_to=str),
+                        ScalarEntry.typed(name="zip", cast_to=str, type=RequireConfigType.string(), validator=StrFormatValidator(format='[0-9]{5}')),
+                        ScalarEntry.typed(name="city", cast_to=str),
+                        MakeListEntry.make(
                             name="occupants",
                             elements=Config.composite(
                                 entries=[
-                                    ScalarEntry.typed(name="first_name", type=str),
-                                    ScalarEntry.typed(name="last_name", type=str),
+                                    ScalarEntry.typed(name="first_name", cast_to=str),
+                                    ScalarEntry.typed(name="last_name", cast_to=str),
                                 ],
                                 requirements=MakeRequirements.required([
                                     "first_name",

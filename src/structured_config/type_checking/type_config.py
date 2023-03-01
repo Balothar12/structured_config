@@ -40,19 +40,27 @@ class TypeConfig:
 
     @classmethod
     def is_valid_scalar(cls, obj: Any, specific_types: List[Type] or None, allow_instance_of: bool = False):
-        return cls._check_whitelist(obj=obj, whitelist=list(set(cls._scalar_whitelist) & set(specific_types or cls._scalar_whitelist)))
+        return cls._check_whitelist(
+            obj=obj, 
+            whitelist=list(set(cls._scalar_whitelist) & set(specific_types or cls._scalar_whitelist)), 
+            allow_instance_of=allow_instance_of,
+        )
     
     @classmethod
     def is_valid_object(cls, obj: Any, specific_types: List[Type] or None, allow_instance_of: bool = False):
-        return cls._check_whitelist(obj=obj, whitelist=list(set(cls._object_whitelist) & set(specific_types or cls._object_whitelist)))
+        return cls._check_whitelist(
+            obj=obj, 
+            whitelist=list(set(cls._object_whitelist) & set(specific_types or cls._object_whitelist)),
+            allow_instance_of=allow_instance_of,
+        )
     
     @staticmethod
     def no_config_checks() -> ConfigTypeCheckingFunction:
-        return lambda key, parent_key, obj: None
+        return lambda key, parent_key, obj, scalar: None
         
     @staticmethod
     def no_converted_checks() -> ConvertedTypeCheckingFunction:
-        return lambda key, parent_key, obj, scalar: None
+        return lambda key, parent_key, obj: None
 
     @staticmethod
     def _check_whitelist(obj: Any, whitelist: List[Type], allow_instance_of: bool) -> bool:
