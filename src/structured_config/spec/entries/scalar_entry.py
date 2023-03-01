@@ -5,7 +5,7 @@ from structured_config.conversion.converter_base import ConverterBase
 from structured_config.spec.config import Config
 from structured_config.spec.config_value_base import ConfigValueBase
 from structured_config.spec.entries.entry_base import EntryBase
-from structured_config.spec.entries.object_requirements import ObjectRequirements
+from structured_config.spec.entries.object_requirements import ExtractRequirements, ObjectRequirements
 from structured_config.spec.scalar_config_value import ScalarConfigValue
 
 from structured_config.typedefs import ConversionTargetType, ScalarConfigTypeRequirements, ScalarConvertedTypeRequirements
@@ -26,81 +26,17 @@ class _ScalarEntry(EntryBase):
                  create_config_value: ObjectScalarConfigValueFactory):
         self._name: str = name
         self._factory: ObjectScalarConfigValueFactory = create_config_value
+        self._requirement_extractor: ExtractRequirements = ExtractRequirements(name=self._name)
 
     def create_value(self, 
-                     object_type: ConversionTargetType or None, 
+                     object_type: ConversionTargetType or None,
                      requirements: ObjectRequirements or None) -> Tuple[str, ConfigValueBase]:
         """Create a (name, value) tuple for the defined scalar config value
         """
         return (self._name, self._factory(
-            required=self._find_required(object_type=object_type, requirements=requirements), 
-            default=self._find_default(object_type=object_type, requirements=requirements)
+            required=self._requirement_extractor.find_required(object_type=object_type, requirements=requirements), 
+            default=self._requirement_extractor.find_default(object_type=object_type, requirements=requirements)
         ))
-    
-    def _get_required_method(self, 
-                             object_type: ConversionTargetType or None, 
-                             requirements: ObjectRequirements or None) -> Any:
-        return self._get_method_with_fallback(main=object_type, 
-                                              fallback=requirements, 
-                                              method="required",
-                                              expected_return_type=list)
-    
-    def _get_defaults_method(self, 
-                             object_type: ConversionTargetType or None, 
-                             requirements: ObjectRequirements or None) -> Any:
-        return self._get_method_with_fallback(main=object_type, 
-                                              fallback=requirements, 
-                                              method="defaults",
-                                              expected_return_type=dict)
-    
-    def _get_method_with_fallback(self, 
-                                  main: Any, 
-                                  fallback: Any,
-                                  method: str,
-                                  expected_return_type: Type) -> Any:
-        """Try to get the specified method with the specified return type
-
-        Try the main object first, then try the fallback object. If neither has a matching attribute, 
-        return "None", otherwise return the callable attribute.
-        """
-        method_attr: Any = None
-        if main != None:
-            attr = getattr(main, method, None)
-            if attr != None and callable(attr) and get_type_hints(attr)["return"].__origin__ is expected_return_type:
-                method_attr = attr
-        if method_attr == None and fallback != None:
-            attr = getattr(fallback, method, None)
-            if attr != None and callable(attr) and get_type_hints(attr)["return"].__origin__ is expected_return_type:
-                method_attr = attr
-        return method_attr
-    
-    def _find_required(self, 
-                       object_type: ConversionTargetType or None, 
-                       requirements: ObjectRequirements or None) -> bool:
-        # get the "required" method
-        required_method = self._get_required_method(object_type=object_type, requirements=requirements)
-        # verify the method
-        if callable(required_method) and get_type_hints(required_method)["return"].__origin__ is list:
-            # get the default value
-            return self._name in required_method()
-        else:
-            # values are required by default, because the assumption is that if a class
-            # doesn't define the "required" method, it won't define the "defaults" method
-            # either
-            return True
-
-    def _find_default(self, 
-                       object_type: ConversionTargetType or None, 
-                       requirements: ObjectRequirements or None) -> ConversionTargetType:
-        # get the "defaults" method
-        defaults_method = self._get_defaults_method(object_type=object_type, requirements=requirements)
-        # verify the method
-        if callable(defaults_method) and get_type_hints(defaults_method)["return"].__origin__ is dict:
-            # get the default value
-            return defaults_method().get(self._name, None)
-        else:
-            # we cannot have a default value if we don't have a "defaults" method
-            return None
         
 class ScalarEntry:
     

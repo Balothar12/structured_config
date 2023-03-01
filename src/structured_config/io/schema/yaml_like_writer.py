@@ -74,7 +74,7 @@ class YamlLikeWriter(IndentedSchemaWriter):
         # get type string
         type: str = "any-type"
         if value.type != None:
-            type = value.type.__name__
+            type = value.type.typename()
 
         # construct specification
         return f"\"'{type}' value, {requirement}\""

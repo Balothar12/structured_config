@@ -190,10 +190,10 @@ def run2():
             ObjectEntry.make(
                 name="person",
                 entries=[
-                    ScalarEntry.typed(name="first_name", cast_to=str),
-                    ScalarEntry.typed(name="last_name", cast_to=str),
-                    ScalarEntry.typed(name="age", cast_to=int),
-                    ScalarEntry.typed(name="gender", cast_to=str),
+                    ScalarEntry.typed(name="first_name", cast_to=str, type=RequireConfigType.string()),
+                    ScalarEntry.typed(name="last_name", cast_to=str, type=RequireConfigType.string()),
+                    ScalarEntry.typed(name="age", cast_to=float, type=RequireConfigType.number()),
+                    ScalarEntry.typed(name="gender", cast_to=str, type=RequireConfigType.string()),
                 ],
                 requirements=MakeRequirements.required([
                     "first_name", 
@@ -206,17 +206,17 @@ def run2():
                 name="addresses",
                 elements=Config.object(
                     entries=[
-                        ScalarEntry.typed(name="street", cast_to=str),
-                        ScalarEntry.typed(name="number", cast_to=str),
-                        ScalarEntry.typed(name="secondary", cast_to=str),
+                        ScalarEntry.typed(name="street", cast_to=str, type=RequireConfigType.string()),
+                        ScalarEntry.typed(name="number", cast_to=str, type=RequireConfigType.string()),
+                        ScalarEntry.typed(name="secondary", cast_to=str, type=RequireConfigType.string()),
                         ScalarEntry.typed(name="zip", cast_to=str, type=RequireConfigType.string(), validator=StrFormatValidator(format='[0-9]{5}')),
-                        ScalarEntry.typed(name="city", cast_to=str),
+                        ScalarEntry.typed(name="city", cast_to=str, type=RequireConfigType.string()),
                         ListEntry.make(
                             name="occupants",
                             elements=Config.object(
                                 entries=[
-                                    ScalarEntry.typed(name="first_name", cast_to=str),
-                                    ScalarEntry.typed(name="last_name", cast_to=str),
+                                    ScalarEntry.typed(name="first_name", cast_to=str, type=RequireConfigType.string()),
+                                    ScalarEntry.typed(name="last_name", cast_to=str, type=RequireConfigType.string()),
                                 ],
                                 requirements=MakeRequirements.required([
                                     "first_name",
@@ -235,7 +235,11 @@ def run2():
                     }),
                 ),
             )
-        ]
+        ],
+        requirements=MakeRequirements.mixed(
+            required=["person"],
+            defaults={"addresses": [{"valid": False}]}
+        )
     ).require_target_case(target=SnakeCase())) \
     .with_argparse_config(arg_config=ArgparseConfig(
         parser=argparse.ArgumentParser("Config specification test"),

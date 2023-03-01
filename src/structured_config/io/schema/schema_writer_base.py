@@ -5,6 +5,8 @@ from dataclasses import dataclass, field
 from typing import Type, Dict, List
 from enum import Enum
 
+from structured_config.type_checking.type_config import ConfigTypeCheckingFunction
+
 class SchemaWriterBase:
 
     def define(self, config: ConfigValueBase) -> str:
@@ -39,7 +41,7 @@ class DefinitionBase:
 
 @dataclass
 class ValueDefinition(DefinitionBase):
-    type: Type or None
+    type: ConfigTypeCheckingFunction or None
     required: bool
     default: Type or None
 

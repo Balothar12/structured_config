@@ -6,7 +6,7 @@ from structured_config.conversion.type_casting_converter import TypeCastingConve
 from structured_config.spec.config import Config
 from structured_config.spec.config_value_base import ConfigValueBase
 from structured_config.spec.entries.entry_base import EntryBase
-from structured_config.spec.entries.object_requirements import ObjectRequirements
+from structured_config.spec.entries.object_requirements import ExtractRequirements, ObjectRequirements
 from structured_config.spec.list_config_value import ListConfigValue
 from structured_config.type_checking.require_types import RequireConvertedType
 from structured_config.typedefs import ConversionTargetType, ScalarConvertedTypeRequirements
@@ -27,6 +27,7 @@ class _ListEntry(EntryBase):
         self._converter: ConverterBase = converter
         self._type: ScalarConvertedTypeRequirements = type
         self._requirements: ListValidator = requirements
+        self._requirement_extractor: ExtractRequirements = ExtractRequirements(name=self._name)
         
     def create_value(self, 
                      object_type: ConversionTargetType or None, 
@@ -40,7 +41,15 @@ class _ListEntry(EntryBase):
             converted_type_check=RequireConvertedType.make_type_checking_function(
                 expected_types=self._type,
                 default=RequireConvertedType.none(),
-            )
+            ),
+            required=self._requirement_extractor.find_required(
+                object_type=object_type,
+                requirements=requirements,
+            ),
+            default=self._requirement_extractor.find_default(
+                object_type=object_type,
+                requirements=requirements,
+            ),
         ))
 
 class ListEntry:

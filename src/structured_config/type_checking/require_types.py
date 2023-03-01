@@ -48,7 +48,7 @@ class RequireConfigType:
                                     default: ConfigTypeCheckingFunction) -> ConfigTypeCheckingFunction:
         if type(expected_types) is list:
             return RequireConfigType.from_type_list(types=expected_types)
-        elif callable(expected_types):
+        elif callable(expected_types) and type(expected_types) is not type:
             return expected_types  
         elif expected_types:
             return RequireConfigType.from_type_list(types=[expected_types])

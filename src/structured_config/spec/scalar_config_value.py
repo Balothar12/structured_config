@@ -61,7 +61,7 @@ class ScalarConfigValue(ConfigValueBase):
     def specify(self) -> 'DefinitionBase':
         return ValueDefinition(
             key_case=self.get_source_case(),
-            type=self._converter.type(), 
+            type=self._config_type_check, 
             required=self._required, 
             default=self._default,
         )

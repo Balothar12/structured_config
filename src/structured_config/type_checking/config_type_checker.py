@@ -22,6 +22,14 @@ class ConfigTypeChecker:
             raise TypeError(f"Invalid config type: Object '{key}' under '{parent_key}' has "
                             f"invalid type '{type(obj).__name__}': expected one of "
                             f"'{typenames}'")
+        
+    def typename(self) -> str:
+        if not self._specific_types or len(self._specific_types) == 0:
+            return "any-type"
+        elif len(self._specific_types) == 1:
+            return self._specific_types[0].__name__
+        else:
+            return f"{[type.__name__ for type in self._specific_types]}"
 
     def _verify(self, obj: Any, scalar: bool) -> bool:
         return \
