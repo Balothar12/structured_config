@@ -20,6 +20,11 @@ from .spec.config import (
         Config,
     )
 
+from .spec.required_value_not_found_exception import RequiredValueNotFoundException
+from .spec.scalar_config_value import ScalarConfigValue
+from .spec.list_config_value import ListConfigValue
+from .spec.object_config_value  import ObjectConfigValue
+
 from .spec.entries.list_entry import (
         ListEntry,
     )
