@@ -38,9 +38,11 @@ class DictionarySourceExtractor(SourceConvertingFunctionalExtractor):
         mapping: StringKeyMappingFunction,
         data: Dict[str, Any] or List[Any],
         multidict: bool = False,
+        keep_nones: bool = False,
     ):
         self._node_classifier: DictionaryNodeClassifier = DictionaryNodeClassifier()
         self._multidict: bool = multidict
+        self._keep_nones: bool = keep_nones
         super().__init__(
             lambda source: [k for k in list(source.keys())],
             self._flatten,
@@ -77,7 +79,11 @@ class DictionarySourceExtractor(SourceConvertingFunctionalExtractor):
             pairs.extend([(".".join(keys), current)])
 
         # return all pairs wwith valid keys
-        return list(filter(lambda p: len(p[0]) > 1, pairs))
+        return list(
+            filter(
+                lambda p: len(p[0]) > 1 and (self._keep_nones or p[1] != None), pairs
+            )
+        )
 
     @staticmethod
     def direct(data: Dict[str, Any] or List[Any]):
