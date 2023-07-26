@@ -1,9 +1,10 @@
 
+import inspect
 from structured_config.type_checking.config_type_checker import ConfigTypeChecker
 from structured_config.type_checking.converted_type_checker import ConvertedTypeChecker
 from structured_config.type_checking.type_config import ConfigTypeCheckingFunction, ConvertedTypeCheckingFunction, TypeConfig
 
-from typing import Any, Dict, List, Type, TypeVar
+from typing import Any, Callable, Dict, List, Type, TypeVar
 
 from structured_config.base.typedefs import ScalarConfigTypeRequirements, ScalarConvertedTypeRequirements
 
@@ -70,9 +71,26 @@ class RequireConvertedType:
                                     default: ConvertedTypeCheckingFunction) -> ConvertedTypeCheckingFunction:
         if type(expected_types) is list:
             return RequireConvertedType.from_type_list(types=expected_types)
-        elif callable(expected_types):
+        elif callable(expected_types) and RequireConvertedType._is_type_checking_function(expected_types):
             return expected_types  
         elif expected_types:
             return RequireConvertedType.from_type_list(types=[expected_types])
         else:
             return default
+        
+    @staticmethod
+    def _is_type_checking_function(type_object: Callable) -> bool:
+        # get the signature
+        signature: inspect.Signature = inspect.signature(type_object)
+        
+        # a type checking function needs three arguments
+        if len(signature.parameters) != 3:
+            return False
+        
+        # the parameters must be named "key", "parent_key", and "obj"
+        if "key" not in signature.parameters or "parent_key" not in signature.parameters or "obj" not in signature.parameters:
+            return False
+        
+        # if these conditions are fulfilled, the type object is a type checking function
+        return True
+        

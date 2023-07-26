@@ -13,7 +13,7 @@ class OverrideKeyPart:
 
     @staticmethod
     def from_str_part(str_part: str) -> 'OverrideKeyPart':
-        index_pattern: str = "\\[([0-9]+)\\]"
+        index_pattern: str = r"\[(-1|([0-9])+)\]"
         if str_part == "+":
             return OverrideKeyPart(part="array.add", array=True)
         elif re.search(pattern=index_pattern, string=str_part):
