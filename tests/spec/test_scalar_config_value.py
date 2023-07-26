@@ -45,6 +45,10 @@ class TestScalarConfigValue:
 
     values: List[Any] = ["test-str", 123, 123.456, True, False]
     types: List[Type] = [str, int, float, bool, bool]
+    
+    definition_types: List[Type] = [str, int, float, bool]
+    required: List[bool] = [True, False]
+    defaults: List[Any] = ["str-default", 123, 0.123, False]
 
     @pytest.fixture
     def converter(self) -> Converter:
@@ -64,6 +68,23 @@ class TestScalarConfigValue:
 
         return TestScalarConfigValue.ScalarConfigData(value=value, type=type)
     
+    @pytest.fixture(params=list(zip(definition_types, defaults)))
+    def definition_type_with_default(self, request) -> Tuple[Type, Any]:
+        return request.param
+    
+    @pytest.fixture(params=required)
+    def is_required(self, request) -> bool:
+        return request.param
+    
+    @pytest.fixture
+    def config_value_for_definition(self, definition_type_with_default, is_required) -> Tuple[Type, Any, bool, structured_config.ScalarConfigValue]:
+        type, default = definition_type_with_default
+        return (type, default, is_required, structured_config.ScalarConfigValue(
+            config_type_check=structured_config.RequireConfigType.from_type_list(types=[type]),
+            required=is_required,
+            default=None if is_required else default,
+        ))
+
     @pytest.fixture
     def for_passthrough(self, data) -> Tuple[ScalarConfigData, structured_config.ScalarConfigValue]:
         return (
@@ -272,3 +293,13 @@ class TestScalarConfigValue:
         result = value.convert(data.value)
         assert result == data.value
         assert type(result) is data.type
+
+    def test_specify_definition(self, config_value_for_definition):
+        required_type, default, required, value = config_value_for_definition
+        definition: structured_config.ValueDefinition = value.specify()
+
+        assert type(definition) is structured_config.ValueDefinition
+        assert definition.default == (None if required else default)
+        assert definition.type.types() == [required_type]
+        assert definition.required == required
+        assert definition.spec_type == structured_config.SpecType.Value

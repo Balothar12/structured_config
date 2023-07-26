@@ -30,6 +30,9 @@ class ConfigTypeChecker:
             return self._specific_types[0].__name__
         else:
             return f"{[type.__name__ for type in self._specific_types]}"
+        
+    def types(self) -> List[Type]:
+        return self._specific_types
 
     def _verify(self, obj: Any, scalar: bool) -> bool:
         return \
