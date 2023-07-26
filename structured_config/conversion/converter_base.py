@@ -13,7 +13,7 @@ class ConverterBase:
         except ConversionTypeException as error:
             raise error
         except:
-            raise ConversionTypeException(type(other), None, parent=parent, current=current)
+            raise ConversionTypeException(type(other), self.expected_type(), parent=parent, current=current)
         
     def expected_type(self) -> ConversionTargetType or None:
         return None

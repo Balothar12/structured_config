@@ -18,9 +18,12 @@ class ValidatorBase:
 
     def __call__(self, data: ValidatorSourceType) -> ValidatorSourceType:
         if not self.validate(data=data):
-            raise ValidationException(value=data, reason=self.fail_reason)
+            raise ValidationException(value=data, reason=self.get_fail_reason())
         else:
             return data
+
+    def get_fail_reason(self) -> str:
+        return self.fail_reason
 
     def validate(self, data: ValidatorSourceType) -> bool:
         raise NotImplementedError()
