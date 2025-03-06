@@ -1,5 +1,5 @@
 [project]
-name = "structured-config"
+name = "structured_config"
 version = "0.1.0"
 description = "Config utils for python allowing structured definition of configuration that can be defined in files and overridden by commands."
 authors = [
