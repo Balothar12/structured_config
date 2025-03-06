@@ -1,0 +1,19 @@
+[project]
+name = "structured-config"
+version = "0.1.0"
+description = "Config utils for python allowing structured definition of configuration that can be defined in files and overridden by commands."
+authors = [
+    {name = "Balothar12",email = "manuel.pahlitzsch@gmail.com"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "stringcase (>=1.2.0,<2.0.0)",
+    "pyyaml (>=6.0.2,<7.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
